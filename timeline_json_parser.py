@@ -1,25 +1,25 @@
 import json
 
-# NOTE:
-# -----
-# 'dur' = length of clip
-# 'offset' = the source clip frame start time (NOT 'start')
-# 'speed' = 2 is the way the script knows what clip is silence
-# but setting speed to 2 messes with the 'start' 'offset' and 'dur' frames
-# hence why we have to parse the json with this script (speed = 0 is no silence)
 
-
-def parse_timeline_json(timeline_dir: str) -> bool:
-    """Takes a given timeline (timeline_dir) and creates a new file (adjusted_timeline.json) in the same dir parsing the speed changes and fixing the mismatched frametimes.
+def parse_timeline_json(timeline_dir: str, timeline_name: str) -> bool:
+    r"""Takes a given {timeline_name} at {timeline_dir} and creates a new file parsed_{timeline_name}.json in the same dir. Adjusting the speed changes and fixing the mismatched frametimes.
+    
+    NOTE:
+    'dur' = length of clip.
+    'offset' = the source clip frame start time (NOT 'start').
+    'speed' = 2 is the way the script knows what clip is silence.
+    Setting speed to 2 messes with the 'start' 'offset' and 'dur' frames
+    hence why we have to parse the json with this script.
 
     Args:
-        timeline_dir (str): the timeline location to be parsed 
+        timeline_dir (str): path to the timeline location to be parsed (excluding file name). i.e. C:\Program Files\\ 
+        timeline_name (str): name of the timeline (excluding .JSON). This will also be used to give the new timeline created by this function.
 
     Returns:
         bool:
     """
     # Load the timeline JSON
-    with open(timeline_dir, 'r') as f:
+    with open(f"{timeline_dir + timeline_name}.json", 'r') as f:
         timeline = json.load(f)
 
     # Extract clips from the JSON
@@ -56,5 +56,6 @@ def parse_timeline_json(timeline_dir: str) -> bool:
             adjusted_clips.append(adjusted_clip)
 
     # Save new JSON file
-    with open('./adjusted_timeline.json', 'w') as f:
+    with open(f"{timeline_dir}parsed_{timeline_name}.json", 'w') as f:
         json.dump({'v': [adjusted_clips]}, f, indent=4)
+    return True
