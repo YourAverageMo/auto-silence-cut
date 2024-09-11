@@ -2,17 +2,44 @@ import subprocess
 import json
 from pprint import pprint
 
-# move playhead back so GetCurrentVideoItem() returns most recent appened clip
-# appending clip after playhead move does not overwrite clip from playhead position
-def ChangeTimecode(timecode: str, frames: int) -> str:
+# TODO: add test function for adding subclips to timeline
+
+
+# TODO: fix timecode func to accept all fps and any frames_delta change
+def ChangeTimecode(timecode: str) -> str:
+    """move play head back so GetCurrentVideoItem() returns most recent append clip. Appending clip after play head move does not overwrite clip from play head position
+
+    Args:
+        timecode (str):
+        frames (int):
+
+    Returns:
+        str:
+    """
     timecode = timecode.split(':')
     hours = int(timecode[0])
     minutes = int(timecode[1])
     seconds = int(timecode[2])
-    frames = int(timecode[3])
-    frames = frames + frames
+    frames = int(timecode[3]) - 1
+
+    # Handle negative frames by borrowing from seconds
+    if frames < 0:
+        seconds -= 1
+        frames += 60
+
+    # Handle negative seconds by borrowing from minutes
+    if seconds < 0:
+        minutes -= 1
+        seconds += 60
+
+    # Handle negative minutes by borrowing from hours
+    if minutes < 0:
+        hours -= 1
+        minutes += 60
+
     return "{:02d}:{:02d}:{:02d}:{:02d}".format(hours, minutes, seconds,
                                                 frames)
+
 
 def parse_timeline_json(timeline_dir: str, timeline_name: str) -> bool:
     r"""Takes a given {timeline_name} at {timeline_dir} and creates a new file {timeline_name}_parsed.json in the same dir. Adjusting the speed changes and fixing the mismatched frametimes.
@@ -73,6 +100,7 @@ def parse_timeline_json(timeline_dir: str, timeline_name: str) -> bool:
         json.dump({'v': [adjusted_clips]}, f, indent=4)
     return True
 
+
 def main():
 
     # logging
@@ -115,8 +143,8 @@ def main():
         # parsing json
         if parse_timeline_json(file_dir, file_name):
             print("parse successful, adding clips to timeline...\n")
-            
-            
+
+
 # init resolve api
 resolve = app.GetResolve()
 projectManager = resolve.GetProjectManager()
