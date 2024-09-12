@@ -39,9 +39,9 @@ def ChangeTimecode(timecode: str) -> str:
                                                 frames)
 
 
-def parse_timeline_json(timeline_dir: str, timeline_name: str) -> bool:
+def parse_timeline_json(timeline_dir: str, timeline_name: str,
+                        total_frames: int) -> bool:
     r"""Takes a given {timeline_name} at {timeline_dir} and creates a new file {timeline_name}_parsed.json in the same dir. Adjusting the speed changes and fixing the mismatched frametimes.
-    
     NOTE:
     'dur' = length of clip.
     'offset' = the source clip frame start time (NOT 'start').
@@ -52,6 +52,7 @@ def parse_timeline_json(timeline_dir: str, timeline_name: str) -> bool:
     Args:
         timeline_dir (str): path to the timeline location to be parsed (excluding file name). i.e. C:\Program Files\\ 
         timeline_name (str): name of the timeline (excluding .JSON). This will also be used to give the new timeline created by this function.
+        total_frames (int): total amount of frames in the timeline provided. used for the last subclip dur
 
     Returns:
         bool:
@@ -60,20 +61,24 @@ def parse_timeline_json(timeline_dir: str, timeline_name: str) -> bool:
     with open(f"{timeline_dir + timeline_name}.json", 'r') as f:
         timeline = json.load(f)
 
+    # get number of audio tracks
+    audio_track_count = len(timeline['a'])
+
     # Extract clips from the JSON
-    clips = timeline.get('v', [])[0]
+    timeline_clips = timeline.get('v', [])[0]
 
     # Init a list to hold adjusted clips
     adjusted_clips = []
 
-    for i, clip in enumerate(clips):
+    for i, clip in enumerate(timeline_clips):
         if clip['speed'] == 1.0:
             # Use the given values directly for speed 1.0
             adjusted_clips.append(clip)
         elif clip['speed'] == 2.0:
             # Calculate start and dur for speed 2.0
-            previous_clip = clips[i - 1] if i > 0 else None
-            next_clip = clips[i + 1] if i < len(clips) - 1 else None
+            previous_clip = timeline_clips[i - 1] if i > 0 else None
+            next_clip = timeline_clips[
+                i + 1] if i < len(timeline_clips) - 1 else None
 
             # Calculate new start
             if previous_clip:
@@ -85,7 +90,7 @@ def parse_timeline_json(timeline_dir: str, timeline_name: str) -> bool:
             if next_clip:
                 new_dur = next_clip['offset'] - new_start
             else:
-                new_dur = None
+                new_dur = total_frames - new_start
 
             # Update clip with new start and dur
             adjusted_clip = clip.copy()
@@ -95,7 +100,13 @@ def parse_timeline_json(timeline_dir: str, timeline_name: str) -> bool:
 
     # Save new JSON file
     with open(f"{timeline_dir}{timeline_name}_parsed.json", 'w') as f:
-        json.dump({'v': [adjusted_clips]}, f, indent=4)
+        json.dump(
+            {
+                "audio_track_count": audio_track_count,
+                'v': [adjusted_clips],
+            },
+            f,
+            indent=4)
     return True
 
 
