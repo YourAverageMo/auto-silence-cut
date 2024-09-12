@@ -2,8 +2,6 @@ import subprocess
 import json
 from pprint import pprint
 
-# TODO: add test function for adding subclips to timeline
-
 
 # TODO: fix timecode func to accept all fps and any frames_delta change
 def ChangeTimecode(timecode: str) -> str:
@@ -101,6 +99,48 @@ def parse_timeline_json(timeline_dir: str, timeline_name: str) -> bool:
     return True
 
 
+def test(timeline_dir: str, timeline_name: str, idx: int) -> bool:
+    # Load the timeline JSON
+    with open(f"{timeline_dir + timeline_name}.json", 'r') as f:
+        timeline = json.load(f)
+
+    json_parsed = timeline.get('v', [])[0]
+
+    # begin subclip loop
+    for subclip in json_parsed:
+
+        # set subclip attributes
+        startframe = subclip['offset']
+        # TODO: fix dup frames
+        dur = subclip['dur']
+        speed = subclip['speed']
+        # TODO:
+        if dur is None:
+            dur = 120
+        endframe = startframe + dur
+        print(startframe, dur, endframe)
+
+        # appending clips
+        if mediaPool.AppendToTimeline([{
+                "mediaPoolItem": clips[idx],
+                "startFrame": startframe,
+                "endFrame": endframe,
+        }]):
+            print(f"added subclip at {startframe}")
+
+        if speed == 1:
+            # Set the playhead to the new position
+            current_frame = current_timeline.GetCurrentTimecode()
+            new_frame = ChangeTimecode(current_frame)
+            current_timeline.SetCurrentTimecode(new_frame)
+            print("moved playhead")
+
+            # set clip color
+            current_video_item = current_timeline.GetCurrentVideoItem()
+            current_video_item.SetClipColor("Orange")
+            print("clip color changed")
+
+
 def main():
 
     # logging
@@ -143,6 +183,8 @@ def main():
         # parsing json
         if parse_timeline_json(file_dir, file_name):
             print("parse successful, adding clips to timeline...\n")
+
+        test(file_dir, f"{file_name}_parsed", idx)
 
 
 # init resolve api
