@@ -169,7 +169,8 @@ def main():
         file_dir = file_path.split(file)[0]
 
         print(f"creating timeline json for {file} clip at: {file_dir}")
-
+        
+        
         # use auto-edit to create timeline json
         subprocess.run(
             [
