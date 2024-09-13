@@ -153,41 +153,42 @@ def test(timeline_dir: str, timeline_name: str, idx: int) -> bool:
 
 
 def main():
-
-    # logging
-    print(f"found {len(clips)} clips in root dir.\n")
-
+    # TODO update comment
     # begin main loop per clip (get clips -> gen json -> parse json -> add clip from timecode -> change clip color accordingly -> repeat till all clips added)
 
-    for idx, clip in enumerate(clips):
+    is_new_timeline = True
+
+    for clip_idx, clip in enumerate(clips):
         file_path = clip.GetClipProperty()['File Path']
         if file_path == '':  # skip empty list items
             continue
 
-        # dont put .split() in declaration incase folder is same name as file
         file = clip.GetClipProperty()['File Name']
+        # TODO Fix filename convention. grabe everything but the last '.'
         file_name = file.split(".")[0]
         file_dir = file_path.split(file)[0]
 
         print(f"creating timeline json for {file} clip at: {file_dir}")
 
         # use auto-edit to create timeline json
-        subprocess.run([
-            'auto-editor',
-            'test.mkv',
-            '--edit',
-            '(audio #:stream 1)',
-            '--export',
-            'json',
-            '--silent-speed',
-            '2',
-            '--video-speed',
-            '1',
-            '--output',
-            f"{file_name}",
-        ],
-                       cwd=fr"{file_dir}",
-                       creationflags=subprocess.CREATE_NO_WINDOW)
+        subprocess.run(
+            [
+                'auto-editor',
+                # TODO Fix name below 👇🏽
+                file,
+                '--edit',
+                '(audio #:stream 1)',
+                '--export',
+                'json',
+                '--silent-speed',
+                '2',
+                '--video-speed',
+                '1',
+                '--output',
+                f"{file_name}",
+            ],
+            cwd=fr"{file_dir}",
+            creationflags=subprocess.CREATE_NO_WINDOW)
 
         print("timeline creation successful, parsing JSON...")
 
@@ -204,6 +205,7 @@ projectManager = resolve.GetProjectManager()
 project = projectManager.GetCurrentProject()
 mediaPool = project.GetMediaPool()
 rootFolder = mediaPool.GetRootFolder()
+# clips variable name is reference in test() so if your going to change its name you have to change it there too
 clips = rootFolder.GetClipList()
 current_timeline = project.GetCurrentTimeline()
 
@@ -211,3 +213,5 @@ current_timeline = project.GetCurrentTimeline()
 print("beginning process.")
 print("---")
 main()
+print("---")
+print("process complete.")
