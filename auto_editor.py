@@ -111,7 +111,6 @@ def parse_timeline_json(timeline_dir: str, timeline_name: str,
     return True
 
 
-# FIXME fix overlapping frames at end of clip and beginning of clip
 def parse_timeline_json2(file_path: Path, total_frames: int) -> bool:
     r"""Takes a given {timeline_name} at {timeline_dir} and creates a new file {timeline_name}_parsed.json in the same dir. Adjusting the speed changes and fixing the mismatched frametimes.
     NOTE'dur' = length of clip, 'offset' = the source clip frame start time (NOT 'start'), 'speed' = 2 is the way the script knows what clip is silence. Setting speed to 2 messes with the 'start' 'offset' and 'dur' frames
@@ -269,9 +268,6 @@ def main():
         file_path = clip.GetClipProperty()['File Path']
         if file_path:  # skip empty list items
             file_path = Path(file_path)
-
-            # TODO Fix filename convention. grabe everything but the last '.'
-
             print(
                 f"creating timeline json for {file_path.name} clip at: {file_path.parent}"
             )
@@ -280,7 +276,6 @@ def main():
             subprocess.run(
                 [
                     'auto-editor',
-                    # TODO Fix name below 👇🏽
                     file_path.name,
                     '--edit',
                     '(audio #:stream 1)',
@@ -325,7 +320,6 @@ projectManager = resolve.GetProjectManager()
 project = projectManager.GetCurrentProject()
 mediaPool = project.GetMediaPool()
 rootFolder = mediaPool.GetRootFolder()
-# clips variable name is reference in test() so if your going to change its name you have to change it there too
 # FIXME change search folder to a specific folder to prevent looping non-videos
 clips = rootFolder.GetClipList()
 current_timeline = project.GetCurrentTimeline()
