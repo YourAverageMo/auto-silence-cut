@@ -2,6 +2,7 @@ import subprocess
 import json
 from pprint import pprint
 from datetime import datetime
+from pathlib import Path
 
 
 # NOTE ChangeTimecode() is legacy code now use change_clip_colors() now.
@@ -111,8 +112,7 @@ def parse_timeline_json(timeline_dir: str, timeline_name: str,
 
 
 # FIXME fix overlapping frames at end of clip and beginning of clip
-def parse_timeline_json2(timeline_dir: str, timeline_name: str,
-                         total_frames: int) -> bool:
+def parse_timeline_json2(file_path: Path, total_frames: int) -> bool:
     r"""Takes a given {timeline_name} at {timeline_dir} and creates a new file {timeline_name}_parsed.json in the same dir. Adjusting the speed changes and fixing the mismatched frametimes.
     NOTE'dur' = length of clip, 'offset' = the source clip frame start time (NOT 'start'), 'speed' = 2 is the way the script knows what clip is silence. Setting speed to 2 messes with the 'start' 'offset' and 'dur' frames
     hence why we have to parse the json with this script.
@@ -126,19 +126,19 @@ def parse_timeline_json2(timeline_dir: str, timeline_name: str,
         bool:
     """
     # Load the timeline JSON
-    with open(f"{timeline_dir + timeline_name}.json", 'r') as f:
+    with open(f"{file_path.parent / file_path.stem}.json", 'r') as f:
         timeline = json.load(f)
-    
+
     # get number of audio tracks
     audio_track_count = len(timeline['a'])
-    
+
     # Extract clips from the JSON
     timeline_clips = timeline.get('v', [])[0]
-    
+
     # Init a list to hold adjusted clips
     adjusted_clips = []
     silent_clips = []
-    
+
     for i, clip in enumerate(timeline_clips):
         if clip['speed'] == 1.0:
             new_clip = {
@@ -147,36 +147,36 @@ def parse_timeline_json2(timeline_dir: str, timeline_name: str,
             }
         elif clip['speed'] == 2.0:
             silent_clips.append(i)
-            
+
             # Calculate start and dur for speed 2.0
             previous_clip = timeline_clips[i - 1] if i > 0 else None
             next_clip = timeline_clips[
                 i + 1] if i < len(timeline_clips) - 1 else None
-            
+
             # Calculate new start
             if previous_clip:
                 new_start = previous_clip['offset'] + previous_clip['dur']
             else:
                 new_start = clip['start']
-                
+
             # Calculate new dur
             if next_clip:
                 new_dur = next_clip['offset'] - new_start
             else:
                 new_dur = total_frames - new_start
-            
+
             # Update clip with new start and dur
             new_clip = {
                 'startFrame': new_start,
                 'endFrame': new_start + new_dur,
             }
-        
+
         if i > 0:
             new_clip['startFrame'] += 1
         adjusted_clips.append(new_clip)
-    
+
     # Save new JSON file
-    with open(f"{timeline_dir}{timeline_name}_parsed.json", 'w') as f:
+    with open(f"{file_path.parent / file_path.stem}_parsed.json", 'w') as f:
         json.dump(
             {
                 "audio_track_count": audio_track_count,
@@ -188,10 +188,9 @@ def parse_timeline_json2(timeline_dir: str, timeline_name: str,
     return True
 
 
-def create_timeline_with_clip(timeline_dir: str, timeline_name: str,
-                              clip_idx: int) -> bool:
+def create_timeline_with_clip(file_path: Path, clip_idx: int) -> bool:
     # Load the timeline JSON
-    with open(f"{timeline_dir + timeline_name}.json", 'r') as f:
+    with open(f"{file_path.parent / file_path.stem}_parsed.json", 'r') as f:
         timeline = json.load(f)
 
     subclips_json_parsed = timeline.get('v', [])
@@ -217,13 +216,12 @@ def create_timeline_with_clip(timeline_dir: str, timeline_name: str,
     current_timeline = project.GetCurrentTimeline()
 
 
-def append_clips(timeline_dir: str,
-                 timeline_name: str,
+def append_clips(file_path: Path,
                  clip_idx: int,
                  skip_first: bool = False) -> bool:
 
     # Load the timeline JSON
-    with open(f"{timeline_dir + timeline_name}.json", 'r') as f:
+    with open(f"{file_path.parent / file_path.stem}_parsed.json", 'r') as f:
         timeline = json.load(f)
 
     subclips_json_parsed = timeline.get('v', [])
@@ -269,56 +267,56 @@ def main():
 
     for clip_idx, clip in enumerate(clips):
         file_path = clip.GetClipProperty()['File Path']
-        if file_path == '':  # skip empty list items
-            continue
+        if file_path:  # skip empty list items
+            file_path = Path(file_path)
 
-        file = clip.GetClipProperty()['File Name']
-        # TODO Fix filename convention. grabe everything but the last '.'
-        file_name = file.split(".")[0]
-        file_dir = file_path.split(file)[0]
+            # TODO Fix filename convention. grabe everything but the last '.'
 
-        print(f"creating timeline json for {file} clip at: {file_dir}")
+            print(
+                f"creating timeline json for {file_path.name} clip at: {file_path.parent}"
+            )
 
-        # use auto-edit to create timeline json
-        subprocess.run(
-            [
-                'auto-editor',
-                # TODO Fix name below 👇🏽
-                file,
-                '--edit',
-                '(audio #:stream 1)',
-                '--export',
-                'json',
-                '--silent-speed',
-                '2',
-                '--video-speed',
-                '1',
-                '--output',
-                f"{file_name}",
-            ],
-            cwd=fr"{file_dir}",
-            creationflags=subprocess.CREATE_NO_WINDOW)
+            # use auto-edit to create timeline json
+            subprocess.run(
+                [
+                    'auto-editor',
+                    # TODO Fix name below 👇🏽
+                    file_path.name,
+                    '--edit',
+                    '(audio #:stream 1)',
+                    '--export',
+                    'json',
+                    '--silent-speed',
+                    '2',
+                    '--video-speed',
+                    '1',
+                    '--output',
+                    file_path,  # auto-editor trims ext
+                ],
+                cwd=fr"{file_path.parent}",
+                creationflags=subprocess.CREATE_NO_WINDOW)
 
-        print("timeline creation successful, parsing JSON...")
+            print("timeline creation successful, parsing JSON...")
 
-        # parsing json
-        total_frames = int(clips[clip_idx].GetClipProperty('End'))
-        if parse_timeline_json2(file_dir, file_name, total_frames):
-            print("parse successful, adding clips to timeline...")
+            # parsing json
+            total_frames = int(clips[clip_idx].GetClipProperty('End'))
 
-        if is_new_timeline:
-            create_timeline_with_clip(file_dir, f"{file_name}_parsed",
-                                      clip_idx)
-            # append rest of the clips in first file
-            append_clips(file_dir, f"{file_name}_parsed", clip_idx, True)
-            is_new_timeline = False
-            print(f"new timeline created")
-            print(f"{file} added...\n")
-            continue
+            # TODO change return to the actualy json file so i dont have to open the files backup in diff functions and can just pass the json around
+            if parse_timeline_json2(file_path, total_frames):
+                print("parse successful, adding clips to timeline...")
 
-        # append remaining clips if multiple files
-        append_clips(file_dir, f"{file_name}_parsed", clip_idx)
-        print(f"{file} added...\n")
+            if is_new_timeline:
+                create_timeline_with_clip(file_path, clip_idx)
+                # append rest of the clips in first file
+                append_clips(file_path, clip_idx, True)
+                is_new_timeline = False
+                print(f"new timeline created")
+                print(f"{file_path.name} added...\n")
+                continue
+
+            # append remaining clips if multiple files
+            append_clips(file_path, clip_idx)
+            print(f"{file_path.name} added...\n")
 
 
 # init resolve api
