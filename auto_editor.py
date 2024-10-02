@@ -41,6 +41,31 @@ def ChangeTimecode(timecode: str) -> str:
                                                 frames)
 
 
+# legacy code
+def guess_project_folder():
+    try:
+        timeline_track_list = current_timeline.GetItemListInTrack("audio",
+                                                                  1)[:10]
+        filepaths = []
+        for track in timeline_track_list:
+            try:
+                track_path = track.GetMediaPoolItem().GetClipProperty(
+                    f'File Path')
+                if track_path != '':
+                    filepaths.append(track_path)
+            except AttributeError:
+                print('AttributeError found, skipping timeline item')
+                continue
+    except IndexError:
+        print('no timeline active')
+        pass
+    if not filepaths:
+        return None
+    else:
+        most_common_file = Counter(filepaths).most_common(1)[0][0]
+        return Path(most_common_file).parent
+
+
 def parse_timeline_json(timeline_dir: str, timeline_name: str,
                         total_frames: int) -> bool:
     r"""Takes a given {timeline_name} at {timeline_dir} and creates a new file {timeline_name}_parsed.json in the same dir. Adjusting the speed changes and fixing the mismatched frametimes.
