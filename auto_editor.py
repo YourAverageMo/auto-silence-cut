@@ -1,20 +1,70 @@
 import subprocess
 import json
-from pprint import pprint
 from datetime import datetime
 from pathlib import Path
-from collections import Counter
-from os.path import dirname
 
 # TODO add gui
-# TODO settings file
 # TODO color adjustment for clips
 # TODO trim margin adjustment
 # TODO audio track selection
 # TODO put clips in diff dir instead of root
 
 
-# NOTE ChangeTimecode() is legacy code now use change_clip_colors() now.
+def load_settings():
+    settings_file = settings_dir / "settings.json"
+    # use settings file if it exists
+    if settings_file.exists():
+        try:
+            with open(settings_file, 'r') as f:
+                settings = json.load(f)
+        # abort if syntax error to preserve user settings
+        except json.decoder.JSONDecodeError:
+            print(
+                "error loading user settings (syntax error), please correct settings.json or delete the file and rerun to use default settings"
+            )
+            print("aborting script...")
+            exit()
+
+    # save default settings to file
+    else:
+        settings = {
+            'L_TRIM_MARGIN': 0,
+            'R_TRIM_MARGIN': 0,
+            'USE_AUDIO_TRACK': 0,
+            'HIGHLIGHT_COLOR': 'Orange',
+            'SKIP_GUI': False,
+        }
+        with open(settings_file, 'w') as f:
+            json.dump(settings, f, indent=4)
+
+    # set global settings
+    # i think its neater to use globals here than to have these in the main loop
+    global L_TRIM_MARGIN
+    global R_TRIM_MARGIN
+    global USE_AUDIO_TRACK
+    global HIGHLIGHT_COLOR
+    global SKIP_GUI
+
+    try:
+        L_TRIM_MARGIN = settings["L_TRIM_MARGIN"]
+        R_TRIM_MARGIN = settings["R_TRIM_MARGIN"]
+        USE_AUDIO_TRACK = settings["USE_AUDIO_TRACK"]
+        HIGHLIGHT_COLOR = settings["HIGHLIGHT_COLOR"]
+        SKIP_GUI = settings["SKIP_GUI"]
+    except KeyError:
+        print(
+            "error loading user settings (missing setting), please correct settings.json or delete the file and rerun to use default settings"
+        )
+        print("aborting script...")
+        exit()
+
+    # cleaning memory
+    del settings
+
+    return True
+
+
+# NOTE ChangeTimecode() is legacy code use change_clip_colors() now.
 def ChangeTimecode(timecode: str) -> str:
     """move play head back so GetCurrentVideoItem() returns most recent append clip. Appending clip after play head move does not overwrite clip from play head position
 
@@ -134,7 +184,7 @@ def create_timeline_with_clip(parsed_timeline: dict, clip_idx: int) -> bool:
     timestamp = datetime.now().strftime("%y%m%d%H%M")
 
     # make new timeline using first clip
-    mediaPool.CreateTimelineFromClips(
+    media_pool.CreateTimelineFromClips(
         f"cool timeline yo {timestamp}",
         [{
             'mediaPoolItem': clips[clip_idx],
@@ -164,7 +214,7 @@ def append_clips(parsed_timeline: dict,
         # i could list slice parsed_timeline and remove idx 0 if skip_first instead of checking if every subclip... but for now this is fine. if it causes performance issues i will change it
         if skip_first and idx == 0:
             continue
-        mediaPool.AppendToTimeline([{
+        media_pool.AppendToTimeline([{
             'mediaPoolItem': clips[clip_idx],
             'startFrame': subclip['startFrame'],
             'endFrame': subclip['endFrame'],
@@ -254,16 +304,45 @@ def main():
             print(f"{file_path.name} added...\n")
 
 
-# init resolve api
-resolve = app.GetResolve()
-projectManager = resolve.GetProjectManager()
-project = projectManager.GetCurrentProject()
-mediaPool = project.GetMediaPool()
-rootFolder = mediaPool.GetRootFolder()
-folders = rootFolder.GetSubFolderList()
-# FIXME change search folder to a specific folder to prevent looping non-videos
-clips = rootFolder.GetClipList()
-current_timeline = project.GetCurrentTimeline()
+def open_user_interface():
+    pass
+
+
+# --
+# -- Main loop starts here
+# --
+
+# set/make settings folder
+settings_dir = Path().home() / "Documents" / "Auto Editor"
+settings_dir.mkdir(exist_ok=True)
+load_settings()
+
+try:
+    # Attempt to get the DaVinci Resolve API object
+    resolve = app.GetResolve()
+    if resolve:
+        if SKIP_GUI:
+            # i no nested if statement... bite me.
+            print(
+                f'Skipping user interface, to re-enable set SKIP_GUI to false in settings.json at {settings_dir}'
+            )
+        project_manager = resolve.GetProjectManager()
+        project = project_manager.GetCurrentProject()
+        media_pool = project.GetMediaPool()
+        root_folder = media_pool.GetRootFolder()
+        folders = root_folder.GetSubFolderList()
+        clips = root_folder.GetClipList()
+        current_timeline = project.GetCurrentTimeline()
+        ui = fusion.UIManager
+        dispatcher = bmd.UIDispatcher(ui)
+
+except NameError:
+    print("Script must run inside DaVinci Resolve. aborting..")
+    exit()
+
+if resolve and not SKIP_GUI:
+    # open_user_interface is just a way of loading and saving settings. ezpz
+    open_user_interface()
 
 # logging
 print("beginning process.")
