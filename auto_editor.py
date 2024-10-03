@@ -3,6 +3,15 @@ import json
 from pprint import pprint
 from datetime import datetime
 from pathlib import Path
+from collections import Counter
+from os.path import dirname
+
+# TODO add gui
+# TODO settings file
+# TODO color adjustment for clips
+# TODO trim margin adjustment
+# TODO audio track selection
+# TODO put clips in diff dir instead of root
 
 
 # NOTE ChangeTimecode() is legacy code now use change_clip_colors() now.
@@ -41,102 +50,7 @@ def ChangeTimecode(timecode: str) -> str:
                                                 frames)
 
 
-# legacy code
-def guess_project_folder():
-    try:
-        timeline_track_list = current_timeline.GetItemListInTrack("audio",
-                                                                  1)[:10]
-        filepaths = []
-        for track in timeline_track_list:
-            try:
-                track_path = track.GetMediaPoolItem().GetClipProperty(
-                    f'File Path')
-                if track_path != '':
-                    filepaths.append(track_path)
-            except AttributeError:
-                print('AttributeError found, skipping timeline item')
-                continue
-    except IndexError:
-        print('no timeline active')
-        pass
-    if not filepaths:
-        return None
-    else:
-        most_common_file = Counter(filepaths).most_common(1)[0][0]
-        return Path(most_common_file).parent
-
-
-def parse_timeline_json(timeline_dir: str, timeline_name: str,
-                        total_frames: int) -> bool:
-    r"""Takes a given {timeline_name} at {timeline_dir} and creates a new file {timeline_name}_parsed.json in the same dir. Adjusting the speed changes and fixing the mismatched frametimes.
-    NOTE 'dur' = length of clip.
-    'offset' = the source clip frame start time (NOT 'start').
-    'speed' = 2 is the way the script knows what clip is silence.
-    Setting speed to 2 messes with the 'start' 'offset' and 'dur' frames
-    hence why we have to parse the json with this script.
-
-    Args:
-        timeline_dir (str): path to the timeline location to be parsed (excluding file name). i.e. C:\Program Files\\ 
-        timeline_name (str): name of the timeline (excluding .JSON). This will also be used to give the new timeline created by this function.
-        total_frames (int): total amount of frames in the timeline provided. used for the last subclip dur
-
-    Returns:
-        bool:
-    """
-    # Load the timeline JSON
-    with open(f"{timeline_dir + timeline_name}.json", 'r') as f:
-        timeline = json.load(f)
-
-    # get number of audio tracks
-    audio_track_count = len(timeline['a'])
-
-    # Extract clips from the JSON
-    timeline_clips = timeline.get('v', [])[0]
-
-    # Init a list to hold adjusted clips
-    adjusted_clips = []
-
-    for i, clip in enumerate(timeline_clips):
-        if clip['speed'] == 1.0:
-            # Use the given values directly for speed 1.0
-            adjusted_clips.append(clip)
-        elif clip['speed'] == 2.0:
-            # Calculate start and dur for speed 2.0
-            previous_clip = timeline_clips[i - 1] if i > 0 else None
-            next_clip = timeline_clips[
-                i + 1] if i < len(timeline_clips) - 1 else None
-
-            # Calculate new start
-            if previous_clip:
-                new_start = previous_clip['offset'] + previous_clip['dur']
-            else:
-                new_start = clip['start']
-
-            # Calculate new dur
-            if next_clip:
-                new_dur = next_clip['offset'] - new_start
-            else:
-                new_dur = total_frames - new_start
-
-            # Update clip with new start and dur
-            adjusted_clip = clip.copy()
-            adjusted_clip['offset'] = new_start
-            adjusted_clip['dur'] = new_dur
-            adjusted_clips.append(adjusted_clip)
-
-    # Save new JSON file
-    with open(f"{timeline_dir}{timeline_name}_parsed.json", 'w') as f:
-        json.dump(
-            {
-                "audio_track_count": audio_track_count,
-                'v': [adjusted_clips],
-            },
-            f,
-            indent=4)
-    return True
-
-
-def parse_timeline_json2(file_path: Path, total_frames: int) -> bool:
+def parse_timeline_json(file_path: Path, total_frames: int) -> bool:
     r"""Takes a given {timeline_name} at {timeline_dir} and creates a new file {timeline_name}_parsed.json in the same dir. Adjusting the speed changes and fixing the mismatched frametimes.
     NOTE'dur' = length of clip, 'offset' = the source clip frame start time (NOT 'start'), 'speed' = 2 is the way the script knows what clip is silence. Setting speed to 2 messes with the 'start' 'offset' and 'dur' frames
     hence why we have to parse the json with this script.
@@ -200,25 +114,23 @@ def parse_timeline_json2(file_path: Path, total_frames: int) -> bool:
         adjusted_clips.append(new_clip)
 
     # Save new JSON file
+
+    parsed_timeline = {
+        "audio_track_count": audio_track_count,
+        "silent_clips": silent_clips,
+        'v': adjusted_clips,
+    }
+
     with open(f"{file_path.parent / file_path.stem}_parsed.json", 'w') as f:
-        json.dump(
-            {
-                "audio_track_count": audio_track_count,
-                "silent_clips": silent_clips,
-                'v': adjusted_clips,
-            },
-            f,
-            indent=4)
-    return True
+        json.dump(parsed_timeline, f, indent=4)
+
+    return parsed_timeline
 
 
-def create_timeline_with_clip(file_path: Path, clip_idx: int) -> bool:
-    # Load the timeline JSON
-    with open(f"{file_path.parent / file_path.stem}_parsed.json", 'r') as f:
-        timeline = json.load(f)
+def create_timeline_with_clip(parsed_timeline: dict, clip_idx: int) -> bool:
 
-    subclips_json_parsed = timeline.get('v', [])
-    audio_track_count = timeline["audio_track_count"]
+    subclips_json_parsed = parsed_timeline.get('v', [])
+    audio_track_count = parsed_timeline["audio_track_count"]
     timestamp = datetime.now().strftime("%y%m%d%H%M")
 
     # make new timeline using first clip
@@ -232,7 +144,7 @@ def create_timeline_with_clip(file_path: Path, clip_idx: int) -> bool:
 
     # clip color
     # 0 since this is 1st subclip
-    if 0 not in timeline['silent_clips']:
+    if 0 not in parsed_timeline['silent_clips']:
         change_clip_colors("Orange", audio_track_count)
 
     # set current_timeline
@@ -240,19 +152,16 @@ def create_timeline_with_clip(file_path: Path, clip_idx: int) -> bool:
     current_timeline = project.GetCurrentTimeline()
 
 
-def append_clips(file_path: Path,
+def append_clips(parsed_timeline: dict,
                  clip_idx: int,
                  skip_first: bool = False) -> bool:
 
-    # Load the timeline JSON
-    with open(f"{file_path.parent / file_path.stem}_parsed.json", 'r') as f:
-        timeline = json.load(f)
-
-    subclips_json_parsed = timeline.get('v', [])
-    audio_track_count = timeline["audio_track_count"]
+    subclips_json_parsed = parsed_timeline.get('v', [])
+    audio_track_count = parsed_timeline["audio_track_count"]
 
     # appending clips
     for idx, subclip in enumerate(subclips_json_parsed):
+        # i could list slice parsed_timeline and remove idx 0 if skip_first instead of checking if every subclip... but for now this is fine. if it causes performance issues i will change it
         if skip_first and idx == 0:
             continue
         mediaPool.AppendToTimeline([{
@@ -262,7 +171,7 @@ def append_clips(file_path: Path,
         }])
 
         # clip color
-        if idx not in timeline['silent_clips']:
+        if idx not in parsed_timeline['silent_clips']:
             change_clip_colors("Orange", audio_track_count)
 
 
@@ -303,7 +212,7 @@ def main():
                     'auto-editor',
                     file_path.name,
                     '--edit',
-                    '(audio #:stream 1)',
+                    '(audio #:stream 2)',
                     '--export',
                     'json',
                     '--silent-speed',
@@ -322,20 +231,26 @@ def main():
             total_frames = int(clips[clip_idx].GetClipProperty('End'))
 
             # TODO change return to the actualy json file so i dont have to open the files backup in diff functions and can just pass the json around
-            if parse_timeline_json2(file_path, total_frames):
-                print("parse successful, adding clips to timeline...")
+
+            parsed_timeline = parse_timeline_json(file_path, total_frames)
+
+            if not parsed_timeline:
+                print(f"no audio detected in {file_path.name}, skipping...")
+                continue
+
+            print("parse successful, adding clips to timeline...")
 
             if is_new_timeline:
-                create_timeline_with_clip(file_path, clip_idx)
-                # append rest of the clips in first file
-                append_clips(file_path, clip_idx, True)
-                is_new_timeline = False
+                create_timeline_with_clip(parsed_timeline, clip_idx)
                 print(f"new timeline created")
+                # append rest of the clips in first file
+                append_clips(parsed_timeline, clip_idx, True)
+                is_new_timeline = False
                 print(f"{file_path.name} added...\n")
                 continue
 
             # append remaining clips if multiple files
-            append_clips(file_path, clip_idx)
+            append_clips(parsed_timeline, clip_idx)
             print(f"{file_path.name} added...\n")
 
 
@@ -345,6 +260,7 @@ projectManager = resolve.GetProjectManager()
 project = projectManager.GetCurrentProject()
 mediaPool = project.GetMediaPool()
 rootFolder = mediaPool.GetRootFolder()
+folders = rootFolder.GetSubFolderList()
 # FIXME change search folder to a specific folder to prevent looping non-videos
 clips = rootFolder.GetClipList()
 current_timeline = project.GetCurrentTimeline()
