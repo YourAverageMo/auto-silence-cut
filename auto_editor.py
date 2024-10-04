@@ -192,14 +192,14 @@ def create_timeline_with_clip(parsed_timeline: dict, clip_idx: int) -> bool:
             'endFrame': subclips_json_parsed[0]['endFrame'],
         }])
 
-    # clip color
-    # 0 since this is 1st subclip
-    if 0 not in parsed_timeline['silent_clips']:
-        change_clip_colors("Orange", audio_track_count)
-
     # set current_timeline
     global current_timeline
     current_timeline = project.GetCurrentTimeline()
+
+    # clip color
+    # 0 since this is 1st subclip
+    if 0 not in parsed_timeline['silent_clips']:
+        change_clip_colors(HIGHLIGHT_COLOR, audio_track_count)
 
 
 def append_clips(parsed_timeline: dict,
@@ -222,7 +222,7 @@ def append_clips(parsed_timeline: dict,
 
         # clip color
         if idx not in parsed_timeline['silent_clips']:
-            change_clip_colors("Orange", audio_track_count)
+            change_clip_colors(HIGHLIGHT_COLOR, audio_track_count)
 
 
 def change_clip_colors(color: str, audio_track_count: int):
@@ -242,6 +242,7 @@ def change_clip_colors(color: str, audio_track_count: int):
     return True
 
 
+# BUG when set to audio track 0 the first track is not silent but gets treated as silent
 def main():
     # TODO update comment
     # begin main loop per clip (get clips -> gen json -> parse json -> add clip from timecode -> change clip color accordingly -> repeat till all clips added)
@@ -262,7 +263,7 @@ def main():
                     'auto-editor',
                     file_path.name,
                     '--edit',
-                    '(audio #:stream 2)',
+                    f'(audio #:stream {USE_AUDIO_TRACK})',
                     '--export',
                     'json',
                     '--silent-speed',
