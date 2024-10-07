@@ -241,6 +241,34 @@ def change_clip_colors(color: str, audio_track_count: int):
     return True
 
 
+def diff_audio_tracks():
+    previous_audio_tracks = None
+
+    for clip in clips:
+        file_path = clip.GetClipProperty().get('File Path')
+        if not file_path:
+            continue
+
+        # Run ffprobe to get audio stream information
+        command = [
+            'ffprobe', '-v', 'error', '-select_streams', 'a', '-show_entries',
+            'stream=index', '-of', 'json', file_path
+        ]
+        result = subprocess.run(command, capture_output=True, text=True)
+        ffprobe_output = json.loads(result.stdout)
+
+        # Count the number of audio streams
+        audio_tracks = len(ffprobe_output.get('streams', []))
+
+        # Set previous_audio_tracks on first valid clip
+        if previous_audio_tracks is None:
+            previous_audio_tracks = audio_tracks
+        elif audio_tracks != previous_audio_tracks:
+            return True
+
+    return False
+
+
 def main():
     # TODO update comment
     # begin main loop per clip (get clips -> gen json -> parse json -> add clip from timecode -> change clip color accordingly -> repeat till all clips added)
@@ -310,6 +338,14 @@ def open_user_interface():
 # --
 # -- Main loop starts here
 # --
+
+# error handling for files with diff # audio tracks
+if diff_audio_tracks():
+    print(
+        'The video files in the scan directory do not all contain the same number of audio tracks. Please address this issue and run the script separately for files with different # of audio tracks'
+    )
+    print('aborting...')
+    exit()
 
 # set/make settings folder
 settings_dir = Path().home() / "Documents" / "Auto Editor"
