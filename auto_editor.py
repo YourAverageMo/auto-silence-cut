@@ -4,9 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 # TODO add gui
-# TODO color adjustment for clips
 # TODO trim margin adjustment
-# TODO audio track selection
 # TODO put clips in diff dir instead of root
 
 
@@ -198,7 +196,7 @@ def create_timeline_with_clip(parsed_timeline: dict, clip_idx: int) -> bool:
 
     # clip color
     # 0 since this is 1st subclip
-    if 0 not in parsed_timeline['silent_clips']:
+    if 0 not in parsed_timeline['silent_clips'] and HIGHLIGHT_COLOR is not None:
         change_clip_colors(HIGHLIGHT_COLOR, audio_track_count)
 
 
@@ -221,7 +219,8 @@ def append_clips(parsed_timeline: dict,
         }])
 
         # clip color
-        if idx not in parsed_timeline['silent_clips']:
+        if idx not in parsed_timeline[
+                'silent_clips'] and HIGHLIGHT_COLOR is not None:
             change_clip_colors(HIGHLIGHT_COLOR, audio_track_count)
 
 
@@ -242,7 +241,6 @@ def change_clip_colors(color: str, audio_track_count: int):
     return True
 
 
-# BUG when set to audio track 0 the first track is not silent but gets treated as silent
 def main():
     # TODO update comment
     # begin main loop per clip (get clips -> gen json -> parse json -> add clip from timecode -> change clip color accordingly -> repeat till all clips added)
