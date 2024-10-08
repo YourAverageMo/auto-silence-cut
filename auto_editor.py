@@ -4,6 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 # TODO add gui
+# TODO add audio treshhold settings
 # TODO trim margin adjustment
 # TODO put clips in diff dir instead of root
 
@@ -28,7 +29,7 @@ def load_settings():
         settings = {
             'L_TRIM_MARGIN': 0,
             'R_TRIM_MARGIN': 0,
-            'USE_AUDIO_TRACK': 0,
+            'USE_AUDIO_TRACK': [0],
             'HIGHLIGHT_COLOR': 'Orange',
             'SKIP_GUI': False,
         }
@@ -39,14 +40,14 @@ def load_settings():
     # i think its neater to use globals here than to have these in the main loop
     global L_TRIM_MARGIN
     global R_TRIM_MARGIN
-    global USE_AUDIO_TRACK
+    global USE_AUDIO_TRACKS
     global HIGHLIGHT_COLOR
     global SKIP_GUI
 
     try:
         L_TRIM_MARGIN = settings["L_TRIM_MARGIN"]
         R_TRIM_MARGIN = settings["R_TRIM_MARGIN"]
-        USE_AUDIO_TRACK = settings["USE_AUDIO_TRACK"]
+        USE_AUDIO_TRACKS = settings["USE_AUDIO_TRACK"]
         HIGHLIGHT_COLOR = settings["HIGHLIGHT_COLOR"]
         SKIP_GUI = settings["SKIP_GUI"]
     except KeyError:
@@ -275,6 +276,18 @@ def main():
 
     is_new_timeline = True
 
+    # TODO threshold adjustment
+
+    # formating for auto-edit is diff for 1+ audio streams
+    if len(USE_AUDIO_TRACKS) == 1:
+        # i.e. `audio:stream=0`
+        edit_param = f'audio:stream={USE_AUDIO_TRACKS[0]}'
+    else:
+        # i.e. `(or audio:stream=0 audio:stream=1)`
+        streams = ' '.join(f'audio:stream={stream}'
+                           for stream in USE_AUDIO_TRACKS)
+        edit_param = f'(or {streams})'
+
     for clip_idx, clip in enumerate(clips):
         file_path = clip.GetClipProperty()['File Path']
         if file_path:  # skip empty list items
@@ -286,10 +299,12 @@ def main():
             # use auto-edit to create timeline json
             subprocess.run(
                 [
+                    'cmd',
+                    '/K',
                     'auto-editor',
                     file_path.name,
                     '--edit',
-                    f'(audio #:stream {USE_AUDIO_TRACK})',
+                    edit_param,
                     '--export',
                     'json',
                     '--silent-speed',
@@ -306,9 +321,6 @@ def main():
 
             # parsing json
             total_frames = int(clips[clip_idx].GetClipProperty('End'))
-
-            # TODO change return to the actualy json file so i dont have to open the files backup in diff functions and can just pass the json around
-
             parsed_timeline = parse_timeline_json(file_path, total_frames)
 
             if not parsed_timeline:
@@ -339,14 +351,6 @@ def open_user_interface():
 # -- Main loop starts here
 # --
 
-# error handling for files with diff # audio tracks
-if diff_audio_tracks():
-    print(
-        'The video files in the scan directory do not all contain the same number of audio tracks. Please address this issue and run the script separately for files with different # of audio tracks'
-    )
-    print('aborting...')
-    exit()
-
 # set/make settings folder
 settings_dir = Path().home() / "Documents" / "Auto Editor"
 settings_dir.mkdir(exist_ok=True)
@@ -373,6 +377,14 @@ try:
 
 except NameError:
     print("Script must run inside DaVinci Resolve. aborting..")
+    exit()
+
+# error handling for files with diff # audio tracks
+if diff_audio_tracks():
+    print(
+        'The video files in the scan directory do not all contain the same number of audio tracks. Please address this issue and run the script separately for files with different # of audio tracks'
+    )
+    print('aborting...')
     exit()
 
 if resolve and not SKIP_GUI:
