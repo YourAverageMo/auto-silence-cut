@@ -265,9 +265,9 @@ def diff_audio_tracks():
         if previous_audio_tracks is None:
             previous_audio_tracks = audio_tracks
         elif audio_tracks != previous_audio_tracks:
-            return True
+            return None
 
-    return False
+    return previous_audio_tracks
 
 
 def main():
@@ -299,8 +299,6 @@ def main():
             # use auto-edit to create timeline json
             subprocess.run(
                 [
-                    'cmd',
-                    '/K',
                     'auto-editor',
                     file_path.name,
                     '--edit',
@@ -380,7 +378,8 @@ except NameError:
     exit()
 
 # error handling for files with diff # audio tracks
-if diff_audio_tracks():
+audio_track_count = diff_audio_tracks()
+if not audio_track_count:
     print(
         'The video files in the scan directory do not all contain the same number of audio tracks. Please address this issue and run the script separately for files with different # of audio tracks'
     )
