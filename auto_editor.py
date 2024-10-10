@@ -342,7 +342,117 @@ def main():
 
 
 def open_user_interface():
-    pass
+
+    # element IDs
+    win_id = 'main_window'
+    coffee_button = 'coffee_button'
+    start_button = 'start_button'
+    skip_gui_check = 'skip_ui'
+
+    # check for existing instance
+    win = ui.FindWindow(win_id)
+    if win:
+        win.Show()
+        win.Raise()
+        exit()
+
+    # window layout
+    winLayout = ui.VGroup([
+        # shameless plug section
+        ui.Label({
+            'ID':
+            'DialogBox',
+            'Text':
+            "Auto Editor\nby Muhammed Yilmaz",
+            'Weight':
+            0,
+            'Font':
+            ui.Font({
+                'PixelSize': 24,
+                'Italic': True,
+                'Bold': True,
+            }),
+            'Alignment': {
+                'AlignHCenter': True
+            },
+            'StyleSheet':
+            'QLabel { color: white; }',
+        }),
+        ui.Button({
+            'ID': coffee_button,
+            'Text':
+            'If this plugin is useful and want to support me, consider buying me a coffee :)',
+            'Weight': 0,
+            'StyleSheet': 'QPushButton { color: #f1f17b; }'
+        }),
+        ui.VGap(5),
+
+        # start button
+        ui.Button({
+            'ID': start_button,
+            'Text': 'START',
+            'Font': ui.Font({
+                'PixelSize': 16,
+                'Bold': True
+            }),
+            'Weight': 0
+        }),
+        ui.VGap(5),
+
+        # Advanced Settings Header
+        ui.Label({
+            'Text': "Advanced Settings",
+            'Font': ui.Font({
+                'PixelSize': 16,
+                'Bold': True,
+            }),
+            'Weight': 0,
+        }),
+        ui.VGap(2),
+        ui.CheckBox({
+            'ID': skip_gui_check,
+            'Text':
+            "Skip this window? (Warning to undo this you will have to change the settings file.)",
+            'Weight': 0
+        }),
+        ui.VGap(2),
+    ])
+
+    #  create window and get items
+    win = dispatcher.AddWindow(
+        {
+            'ID': win_id,
+            'WindowTitle': "Auto Editor by Muhammed Yilmaz",
+            'Geometry': [20, 50, 550, 550],
+        }, winLayout)
+    itm = win.GetItems()
+
+    # populate fields
+
+    # window events
+    def save_settings():
+        pass
+
+    def on_close(ev):
+        save_settings()
+        dispatcher.ExitLoop()
+        exit()
+
+    def on_start(ev):
+        dispatcher.ExitLoop()
+
+    def on_coffee_button(ev):
+        import webbrowser
+        webbrowser.open("https://www.youtube.com")
+
+    # event handlers
+    win.On[win_id].Close = on_close
+    win.On[start_button].Clicked = on_start
+    win.On[coffee_button].Clicked = on_coffee_button
+
+    # Show window
+    win.Show()
+    dispatcher.RunLoop()
 
 
 # --
