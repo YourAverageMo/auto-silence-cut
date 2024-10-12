@@ -9,6 +9,16 @@ from pathlib import Path
 # TODO put clips in diff dir instead of root
 
 
+def input_to_float(text: str) -> float:
+    if text == '':
+        return False
+    try:
+        number = float(text)
+        return number
+    except ValueError:
+        return False
+
+
 def load_settings():
     settings_file = settings_dir / "settings.json"
     # use settings file if it exists
@@ -27,8 +37,8 @@ def load_settings():
     # save default settings to file
     else:
         settings = {
-            'L_TRIM_MARGIN': 0,
-            'R_TRIM_MARGIN': 0,
+            'L_TRIM_MARGIN': 0.2,
+            'R_TRIM_MARGIN': 0.2,
             'USE_AUDIO_TRACK': [0],
             'HIGHLIGHT_COLOR': 'Orange',
             'SKIP_GUI': False,
@@ -255,7 +265,10 @@ def diff_audio_tracks():
             'ffprobe', '-v', 'error', '-select_streams', 'a', '-show_entries',
             'stream=index', '-of', 'json', file_path
         ]
-        result = subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(command,
+                                capture_output=True,
+                                text=True,
+                                creationflags=subprocess.CREATE_NO_WINDOW)
         ffprobe_output = json.loads(result.stdout)
 
         # Count the number of audio streams
@@ -268,6 +281,19 @@ def diff_audio_tracks():
             return None
 
     return previous_audio_tracks
+
+
+def construct_checkboxes(audio_tracks: int):
+    checkbox_group = []
+
+    for track in range(audio_tracks):
+        checkbox = ui.CheckBox({
+            'ID': f'checkbox_{track}',
+            'Text': f'Track {track+1}',
+        })
+        checkbox_group.append(checkbox)
+
+    return checkbox_group
 
 
 def main():
@@ -347,6 +373,9 @@ def open_user_interface():
     win_id = 'main_window'
     coffee_button = 'coffee_button'
     start_button = 'start_button'
+    l_trim_input = 'l_trim_input'
+    r_trim_input = 'r_trim_input'
+    highlight_color_input = 'highlight_color_input'
     skip_gui_check = 'skip_ui'
 
     # check for existing instance
@@ -398,17 +427,46 @@ def open_user_interface():
             'Weight': 0
         }),
         ui.VGap(5),
-
-        # Advanced Settings Header
+        ui.HGroup({'Weight': 0}, [
+            ui.Label({
+                'Text': 'Left Trim Margin:',
+                'Font': ui.Font({
+                    'Bold': True,
+                }),
+            }),
+            ui.Label({
+                'Text': 'Right Trim Margin:',
+                'Font': ui.Font({
+                    'Bold': True,
+                }),
+            }),
+            ui.Label({
+                'Text': 'Highlight Color:',
+                'Font': ui.Font({
+                    'Bold': True,
+                }),
+            }),
+        ]),
+        ui.HGroup({'Weight': 0}, [
+            ui.LineEdit({
+                "ID": l_trim_input,
+            }),
+            ui.LineEdit({
+                "ID": r_trim_input,
+            }),
+            ui.ComboBox({
+                'ID': highlight_color_input,
+            }),
+        ]),
+        ui.VGap(5),
         ui.Label({
-            'Text': "Advanced Settings",
+            'Text': 'Edit Based on These Tracks:',
+            'Weight': 0,
             'Font': ui.Font({
-                'PixelSize': 16,
                 'Bold': True,
             }),
-            'Weight': 0,
         }),
-        ui.VGap(2),
+        ui.HGroup({'Weight': 0}, construct_checkboxes(audio_track_count)),
         ui.CheckBox({
             'ID': skip_gui_check,
             'Text':
@@ -423,15 +481,39 @@ def open_user_interface():
         {
             'ID': win_id,
             'WindowTitle': "Auto Editor by Muhammed Yilmaz",
-            'Geometry': [20, 50, 550, 550],
+            'Geometry': [20, 50, 530, 330],
         }, winLayout)
     itm = win.GetItems()
 
     # populate fields
+    itm[highlight_color_input].AddItem('Orange')
+    itm[highlight_color_input].AddItem('Apricot')
+    itm[highlight_color_input].AddItem('Yellow')
+    itm[highlight_color_input].AddItem('Lime')
+    itm[highlight_color_input].AddItem('Olive')
+    itm[highlight_color_input].AddItem('Green')
+    itm[highlight_color_input].AddItem('Navy')
+    itm[highlight_color_input].AddItem('Blue')
+    itm[highlight_color_input].AddItem('Purple')
+    itm[highlight_color_input].AddItem('Violet')
+    itm[highlight_color_input].AddItem('Pink')
+    itm[highlight_color_input].AddItem('Tan')
+    itm[highlight_color_input].AddItem('Beige')
+    itm[highlight_color_input].AddItem('Brown')
+    itm[highlight_color_input].AddItem('Chocolate')
 
     # window events
+
     def save_settings():
-        pass
+        # resolve api is weird, TextEdit boxes need to be strings and spin boxes cant be floats. so in order to give user feedback i have to do it this weird way...
+        L_TRIM_MARGIN = input_to_float(itm[l_trim_input].Text)
+        R_TRIM_MARGIN = input_to_float(itm[r_trim_input].Text)
+        if not L_TRIM_MARGIN or not R_TRIM_MARGIN:
+            itm[l_trim_input].Text = str(0.2)
+            itm[r_trim_input].Text = str(0.2)
+            print('trim margins are not numbers, using default values of 0.2')
+            L_TRIM_MARGIN = input_to_float(itm[l_trim_input].Text)
+            R_TRIM_MARGIN = input_to_float(itm[r_trim_input].Text)
 
     def on_close(ev):
         save_settings()
@@ -439,7 +521,8 @@ def open_user_interface():
         exit()
 
     def on_start(ev):
-        dispatcher.ExitLoop()
+        save_settings()
+        # dispatcher.ExitLoop()
 
     def on_coffee_button(ev):
         import webbrowser
@@ -498,13 +581,14 @@ if not audio_track_count:
 
 if resolve and not SKIP_GUI:
     # open_user_interface is just a way of loading and saving settings. ezpz
+    construct_checkboxes(audio_track_count)
     open_user_interface()
 
 # logging
 print("beginning process.")
 print("---")
 
-main()
+# main()
 
 print("---")
 print("process complete.")
