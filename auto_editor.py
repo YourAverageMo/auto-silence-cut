@@ -41,6 +41,7 @@ def load_settings():
             'R_TRIM_MARGIN': 0.2,
             'USE_AUDIO_TRACK': [0],
             'HIGHLIGHT_COLOR': 'Orange',
+            'HIGHLIGHT_COLOR_INDEX': 0,
             'SKIP_GUI': False,
         }
         with open(settings_file, 'w') as f:
@@ -52,13 +53,17 @@ def load_settings():
     global R_TRIM_MARGIN
     global USE_AUDIO_TRACKS
     global HIGHLIGHT_COLOR
+    global HIGHLIGHT_COLOR_INDEX
     global SKIP_GUI
 
     try:
+        L_TRIM_MARGIN = input_to_float(settings["L_TRIM_MARGIN"])
+        R_TRIM_MARGIN = input_to_float(settings["R_TRIM_MARGIN"])
         L_TRIM_MARGIN = settings["L_TRIM_MARGIN"]
         R_TRIM_MARGIN = settings["R_TRIM_MARGIN"]
         USE_AUDIO_TRACKS = settings["USE_AUDIO_TRACK"]
         HIGHLIGHT_COLOR = settings["HIGHLIGHT_COLOR"]
+        HIGHLIGHT_COLOR_INDEX = settings["HIGHLIGHT_COLOR_INDEX"]
         SKIP_GUI = settings["SKIP_GUI"]
     except KeyError:
         print(
@@ -66,6 +71,12 @@ def load_settings():
         )
         print("aborting script...")
         exit()
+
+    # error handling in case user changes values in settings.json
+    if not L_TRIM_MARGIN or not R_TRIM_MARGIN:
+        print('trim margins are not numbers, using default values of 0.2')
+        L_TRIM_MARGIN = 0.2
+        R_TRIM_MARGIN = 0.2
 
     # cleaning memory
     del settings
@@ -367,6 +378,11 @@ def main():
             print(f"{file_path.name} added...\n")
 
 
+# --
+# -- GUI building starts here
+# --
+
+
 def open_user_interface():
 
     # element IDs
@@ -501,6 +517,11 @@ def open_user_interface():
     itm[highlight_color_input].AddItem('Beige')
     itm[highlight_color_input].AddItem('Brown')
     itm[highlight_color_input].AddItem('Chocolate')
+
+    itm[highlight_color_input].CurrentIndex = HIGHLIGHT_COLOR_INDEX
+
+    itm[l_trim_input].Text = str(L_TRIM_MARGIN)
+    itm[r_trim_input].Text = str(R_TRIM_MARGIN)
 
     # window events
 
