@@ -295,12 +295,17 @@ def diff_audio_tracks():
 
 
 def construct_checkboxes(audio_tracks: int):
+    # im actually quite proud of this constructor 😜
     checkbox_group = []
 
     for track in range(audio_tracks):
         checkbox = ui.CheckBox({
-            'ID': f'checkbox_{track}',
-            'Text': f'Track {track+1}',
+            'ID':
+            f'checkbox_{track}',
+            'Text':
+            f'Track {track+1}',
+            'Checked':
+            True if track in USE_AUDIO_TRACKS else False,  # proud of this
         })
         checkbox_group.append(checkbox)
 
@@ -517,7 +522,7 @@ def open_user_interface():
     itm[highlight_color_input].AddItem('Beige')
     itm[highlight_color_input].AddItem('Brown')
     itm[highlight_color_input].AddItem('Chocolate')
-
+    # set dropdown box
     itm[highlight_color_input].CurrentIndex = HIGHLIGHT_COLOR_INDEX
 
     itm[l_trim_input].Text = str(L_TRIM_MARGIN)
