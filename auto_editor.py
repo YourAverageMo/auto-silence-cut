@@ -605,6 +605,14 @@ if not audio_track_count:
     print('aborting...')
     exit()
 
+# error handling
+if USE_AUDIO_TRACKS and max(USE_AUDIO_TRACKS) > audio_track_count:
+    USE_AUDIO_TRACKS = [0]
+    SKIP_GUI = False
+    print(
+        'One selected audio track in user settings was not available on current clip(s) restoring default settings '
+    )
+
 if resolve and not SKIP_GUI:
     # open_user_interface is just a way of loading and saving settings. ezpz
     construct_checkboxes(audio_track_count)
