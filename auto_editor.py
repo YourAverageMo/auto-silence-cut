@@ -16,7 +16,9 @@ def input_to_float(text: str) -> float:
         number = float(text)
         return number
     except ValueError:
-        return False
+        # error handling in case user changes values in settings.json or UI
+        print('trim margins are not numbers, using default values of 0.2')
+        return 0.2
 
 
 def load_settings():
@@ -71,12 +73,6 @@ def load_settings():
         )
         print("aborting script...")
         exit()
-
-    # error handling in case user changes values in settings.json
-    if not L_TRIM_MARGIN or not R_TRIM_MARGIN:
-        print('trim margins are not numbers, using default values of 0.2')
-        L_TRIM_MARGIN = 0.2
-        R_TRIM_MARGIN = 0.2
 
     # cleaning memory
     del settings
@@ -328,7 +324,7 @@ def main():
         # i.e. `(or audio:stream=0 audio:stream=1)`
         streams = ' '.join(f'audio:stream={stream}'
                            for stream in USE_AUDIO_TRACKS)
-        edit_param = f'(or {streams})'
+        edit_param = f"(or {streams})"
 
     for clip_idx, clip in enumerate(clips):
         file_path = clip.GetClipProperty()['File Path']
@@ -345,6 +341,8 @@ def main():
                     file_path.name,
                     '--edit',
                     edit_param,
+                    '--margin',
+                    f"{L_TRIM_MARGIN}s,{R_TRIM_MARGIN}s",
                     '--export',
                     'json',
                     '--silent-speed',
@@ -448,6 +446,8 @@ def open_user_interface():
             'Weight': 0
         }),
         ui.VGap(5),
+
+        # Labels for l/r trim and color
         ui.HGroup({'Weight': 0}, [
             ui.Label({
                 'Text': 'Left Trim Margin:',
@@ -468,6 +468,8 @@ def open_user_interface():
                 }),
             }),
         ]),
+
+        # inputs for l/r trim and color
         ui.HGroup({'Weight': 0}, [
             ui.LineEdit({
                 "ID": l_trim_input,
@@ -480,6 +482,8 @@ def open_user_interface():
             }),
         ]),
         ui.VGap(5),
+
+        # track checkboxes (constructed)
         ui.Label({
             'Text': 'Edit Based on These Tracks:',
             'Weight': 0,
@@ -488,6 +492,8 @@ def open_user_interface():
             }),
         }),
         ui.HGroup({'Weight': 0}, construct_checkboxes(audio_track_count)),
+
+        # skip GUI
         ui.CheckBox({
             'ID': skip_gui_check,
             'Text':
@@ -522,24 +528,35 @@ def open_user_interface():
     itm[highlight_color_input].AddItem('Beige')
     itm[highlight_color_input].AddItem('Brown')
     itm[highlight_color_input].AddItem('Chocolate')
-    # set dropdown box
     itm[highlight_color_input].CurrentIndex = HIGHLIGHT_COLOR_INDEX
 
     itm[l_trim_input].Text = str(L_TRIM_MARGIN)
     itm[r_trim_input].Text = str(R_TRIM_MARGIN)
 
     # window events
-
     def save_settings():
         # resolve api is weird, TextEdit boxes need to be strings and spin boxes cant be floats. so in order to give user feedback i have to do it this weird way...
-        L_TRIM_MARGIN = input_to_float(itm[l_trim_input].Text)
-        R_TRIM_MARGIN = input_to_float(itm[r_trim_input].Text)
-        if not L_TRIM_MARGIN or not R_TRIM_MARGIN:
-            itm[l_trim_input].Text = str(0.2)
-            itm[r_trim_input].Text = str(0.2)
-            print('trim margins are not numbers, using default values of 0.2')
-            L_TRIM_MARGIN = input_to_float(itm[l_trim_input].Text)
-            R_TRIM_MARGIN = input_to_float(itm[r_trim_input].Text)
+
+        settings_file = settings_dir / "settings.json"
+
+        # fetching checked track checkboxes
+        USE_AUDIO_TRACKS_EDITED = []
+        for track in range(audio_track_count):
+            if itm[f'checkbox_{track}'].Checked:
+                USE_AUDIO_TRACKS_EDITED.append(track)
+
+        settings = {
+            'L_TRIM_MARGIN': input_to_float(itm[l_trim_input].Text),
+            'R_TRIM_MARGIN': input_to_float(itm[r_trim_input].Text),
+            'USE_AUDIO_TRACK': USE_AUDIO_TRACKS_EDITED,
+            'HIGHLIGHT_COLOR': itm[highlight_color_input].CurrentText,
+            'HIGHLIGHT_COLOR_INDEX': itm[highlight_color_input].CurrentIndex,
+            'SKIP_GUI': itm[skip_gui_check].Checked,
+        }
+        with open(settings_file, 'w') as f:
+            json.dump(settings, f, indent=4)
+
+        return True
 
     def on_close(ev):
         save_settings()
@@ -548,7 +565,8 @@ def open_user_interface():
 
     def on_start(ev):
         save_settings()
-        # dispatcher.ExitLoop()
+        load_settings()
+        dispatcher.ExitLoop()
 
     def on_coffee_button(ev):
         import webbrowser
@@ -622,7 +640,7 @@ if resolve and not SKIP_GUI:
 print("beginning process.")
 print("---")
 
-# main()
+main()
 
 print("---")
 print("process complete.")
