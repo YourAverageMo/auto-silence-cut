@@ -508,7 +508,7 @@ def open_user_interface():
         {
             'ID': win_id,
             'WindowTitle': "Auto Editor by Muhammed Yilmaz",
-            'Geometry': [20, 50, 530, 330],
+            'Geometry': [20, 50, 530, 320],
         }, winLayout)
     itm = win.GetItems()
 
@@ -564,6 +564,7 @@ def open_user_interface():
         exit()
 
     def on_start(ev):
+        itm[start_button].Text = 'RUNNING... (dont press anything)'
         save_settings()
         load_settings()
         dispatcher.ExitLoop()
