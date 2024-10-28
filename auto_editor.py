@@ -3,13 +3,13 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-# TODO add gui
 # TODO add audio treshhold settings
-# TODO trim margin adjustment
 # TODO put clips in diff dir instead of root
 
 
 def input_to_float(text: str) -> float:
+    """Converts input `text` into a float except returns 0.2 (default value) on ValueError (meaning input text is not only numbers). Used to convert user input felids in GUI."""
+
     if text == '':
         return False
     try:
@@ -21,7 +21,11 @@ def input_to_float(text: str) -> float:
         return 0.2
 
 
-def load_settings():
+def load_settings() -> bool:
+    """Handles loading of settings.json file, if exists = False creates one with default settings. Sets Global vars:
+    
+    L_TRIM_MARGIN, R_TRIM_MARGIN, USE_AUDIO_TRACK, HIGHLIGHT_COLOR, HIGHLIGHT_COLOR_INDEX, SKIP_GUI"""
+
     settings_file = settings_dir / "settings.json"
     # use settings file if it exists
     if settings_file.exists():
@@ -117,18 +121,11 @@ def ChangeTimecode(timecode: str) -> str:
 
 
 def parse_timeline_json(file_path: Path, total_frames: int) -> bool:
-    r"""Takes a given {timeline_name} at {timeline_dir} and creates a new file {timeline_name}_parsed.json in the same dir. Adjusting the speed changes and fixing the mismatched frametimes.
-    NOTE'dur' = length of clip, 'offset' = the source clip frame start time (NOT 'start'), 'speed' = 2 is the way the script knows what clip is silence. Setting speed to 2 messes with the 'start' 'offset' and 'dur' frames
-    hence why we have to parse the json with this script.
+    r"""Takes the timeline json file created by `auto-editor` and parses the data inside it adjusting the speed changes and fixing the mismatched frametimes. Returns new file ends with `_parsed` in the same dir.
     
-    Args:
-        timeline_dir (str): path to the timeline location to be parsed (excluding file name). i.e. C:\Program Files\\
-        timeline_name (str): name of the timeline (excluding .JSON). This will also be used to give the new timeline created by this function.
-        total_frames (int): total amount of frames in the timeline provided. used for the last subclip dur
-        
-    Returns:
-        bool:
-    """
+    NOTE: 'dur' = length of clip, 'offset' = the source clip frame start time (NOT 'start'), 'speed' = 2 is the way the script knows what clip is silence. Setting speed to 2 messes with the 'start' 'offset' and 'dur' frames
+    hence why we have to parse the json with this script."""
+
     # Load the timeline JSON
     with open(f"{file_path.parent / file_path.stem}.json", 'r') as f:
         timeline = json.load(f)
@@ -194,6 +191,7 @@ def parse_timeline_json(file_path: Path, total_frames: int) -> bool:
 
 
 def create_timeline_with_clip(parsed_timeline: dict, clip_idx: int) -> bool:
+    """Creates new timeline and appends first clip found in the newly created `parsed_timeline`."""
 
     subclips_json_parsed = parsed_timeline.get('v', [])
     audio_track_count = parsed_timeline["audio_track_count"]
@@ -221,6 +219,7 @@ def create_timeline_with_clip(parsed_timeline: dict, clip_idx: int) -> bool:
 def append_clips(parsed_timeline: dict,
                  clip_idx: int,
                  skip_first: bool = False) -> bool:
+    """Appends all clips found in the newly created `parsed_timeline`. if skip_first = True the first clip in `parsed_timeline` will be skiped (meaning it was used to create a new timeline). Also calls `change_clip_colors()` if needed. """
 
     subclips_json_parsed = parsed_timeline.get('v', [])
     audio_track_count = parsed_timeline["audio_track_count"]
@@ -242,7 +241,8 @@ def append_clips(parsed_timeline: dict,
             change_clip_colors(HIGHLIGHT_COLOR, audio_track_count)
 
 
-def change_clip_colors(color: str, audio_track_count: int):
+def change_clip_colors(color: str, audio_track_count: int) -> bool:
+    "Changes all video and audio track colors to given `color` for the last clip on the timeline"
     # get last clip index on timeline horizontally. leave on audio just incase user is only using audio
     subclip_idx = len(current_timeline.GetItemListInTrack("audio", 1)) - 1
 
@@ -259,7 +259,8 @@ def change_clip_colors(color: str, audio_track_count: int):
     return True
 
 
-def diff_audio_tracks():
+def diff_audio_tracks() -> int:
+    """used to check if all video files in `clips` have the same audio track count. Returns audio track count as int."""
     previous_audio_tracks = None
 
     for clip in clips:
@@ -291,7 +292,7 @@ def diff_audio_tracks():
 
 
 def construct_checkboxes(audio_tracks: int):
-    # im actually quite proud of this constructor 😜
+    """Constructs the checkboxes in the GUI for the count of audio tracks"""
     checkbox_group = []
 
     for track in range(audio_tracks):
@@ -301,7 +302,7 @@ def construct_checkboxes(audio_tracks: int):
             'Text':
             f'Track {track+1}',
             'Checked':
-            True if track in USE_AUDIO_TRACKS else False,  # proud of this
+            True if track in USE_AUDIO_TRACKS else False,
         })
         checkbox_group.append(checkbox)
 
@@ -309,8 +310,8 @@ def construct_checkboxes(audio_tracks: int):
 
 
 def main():
-    # TODO update comment
-    # begin main loop per clip (get clips -> gen json -> parse json -> add clip from timecode -> change clip color accordingly -> repeat till all clips added)
+    # flow of main():
+    # gen timeline json for each clip in `clips` in auto-editor > parse json into new json > create new timeline > append clips
 
     is_new_timeline = True
 
@@ -571,7 +572,7 @@ def open_user_interface():
 
     def on_coffee_button(ev):
         import webbrowser
-        webbrowser.open("https://www.youtube.com")
+        webbrowser.open("https://www.buymeacoffee.com/YourAverageMo")
 
     # event handlers
     win.On[win_id].Close = on_close
