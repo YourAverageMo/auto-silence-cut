@@ -1,16 +1,25 @@
-# auto-silence-cut
-Davinci Resolve python script to auto trim silences in media file. (free)
+<!-- omit in toc -->
+# Davinci Resolve FREE Auto Silence Cut
+
+<!-- omit in toc -->
+## Table of Contents
+- [Usage Guide](#usage-guide)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Settings Explained](#settings-explained)
+- [FAQ](#faq)
+- [Contribute](#contribute)
+- [Known Issues](#known-issues)
 
 
-# Useful Resources:
 
-- More detailed Davinci Resolve API reference (https://resolvedevdoc.readthedocs.io/en/latest/API_basic.html)
-- Unofficial Davinci Resolve API docs (https://deric.github.io/DaVinciResolve-API-Docs/)
-- might use auto editor for silence detection (https://github.com/WyattBlue/auto-editor)
-- davinci resolve fusion scripting manuel (https://documents.blackmagicdesign.com/UserManuals/Fusion8_Scripting_Guide.pdf)
-
-
-# Known Issues:
+# Usage Guide
+# Requirements
+# Installation
+# Settings Explained
+# FAQ
+# Contribute
+# Known Issues
 
 - sometimes extra tracks are created when creating new timeline. No idea why this is happening but i think its a DR problem. It used to cause problems with coloring clips but that should be resolved now.
 
