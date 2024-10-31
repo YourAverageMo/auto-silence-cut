@@ -13,15 +13,13 @@
 - [Contribute](#contribute)
 - [Known Issues](#known-issues)
 
-
-
 # Usage Guide
 
 <!-- omit in toc -->
 ### Step 1: Add Clips to the 'Master' Folder
-Drag and drop all the clips you want Auto-Editor to process into the 'MASTER' folder in DaVinci Resolve. 
+Drag and drop all the clips you want Auto-Silence-Cut to process into the 'MASTER' folder in DaVinci Resolve. 
 
-> **Note:** The current version of Auto-Editor processes **all** video files in the 'MASTER' folder.
+> **Note:** The current version of Auto-Silence-Cut processes **all** video files in the 'MASTER' folder.
 
 Although you can process multiple clips simultaneously, it's recommended to only do a few at a time in case something goes wrong. Additionally, having too many clips on the timeline can cause DaVinci Resolve to slow down.
 
@@ -30,30 +28,30 @@ Although you can process multiple clips simultaneously, it's recommended to only
     Workspace -> Console
 
 <!-- omit in toc -->
-### Step 3: Open Auto-Editor
-    Workspace -> Scripts -> Auto-Editor
+### Step 3: Open Auto-Silence-Cut
+    Workspace -> Scripts -> Auto-Silence-Cut
 
 <!-- omit in toc -->
 ### Step 4: Adjust Settings
-A popup window will appear, allowing you to configure how Auto-Editor processes the video files. Refer to the [Settings Explained](#settings-explained) section for detailed explanations of each option.
+A popup window will appear, allowing you to configure how Auto-Silence-Cut processes the video files. Refer to the [Settings Explained](#settings-explained) section for detailed explanations of each option.
 
 Settings are automatically saved upon closing in the following location: `Documents\Auto Editor\settings.json`
 
-The next time you run Auto-Editor, it will load the previously used settings. This is especially important for how the "Skip this window" option behaves.
+The next time you run Auto-Silence-Cut, it will load the previously used settings. This is especially important for how the "Skip this window" option behaves.
 
 If the `settings.json` file is missing or has been deleted, default settings will be restored and saved to the same location.
 
 <!-- omit in toc -->
 ### Step 5: Click 'START'
-When you're ready, click 'START' and **avoid using the keyboard or mouse** while Auto-Editor runs. The script will automatically insert the edited (non-destructive) clips into the timeline, and any input during this time could interfere with that process.
+When you're ready, click 'START' and **avoid using the keyboard or mouse** while Auto-Silence-Cut runs. The script will automatically insert the edited (non-destructive) clips into the timeline, and any input during this time could interfere with that process.
 
 The duration of this process depends on how much footage you are processing. For optimal performance, it's recommended to process no more than 45 minutes of footage at a time to prevent DaVinci Resolve from lagging.
 
-Once the process is complete, a message will appear in the console, and the Auto-Editor window will close automatically.
+Once the process is complete, a message will appear in the console, and the Auto-Silence-Cut window will close automatically.
 
 <!-- omit in toc -->
 ### Step 6: Adjust Subclips
-After Auto-Editor has added the subclips to the timeline, you can adjust them as needed. Since this process is non-destructive, all subclips reference the original source material, allowing you to extend or contract the handles of each subclip.
+After Auto-Silence-Cut has added the subclips to the timeline, you can adjust them as needed. Since this process is non-destructive, all subclips reference the original source material, allowing you to extend or contract the handles of each subclip.
 
 If you're unfamiliar with this, refer to the provided GIF for guidance.
 
@@ -71,7 +69,21 @@ This will select and highlight all the silent clips in the timeline and from the
 
 # Requirements
 
+List of all required dependencies:
+
+- [Python](https://www.python.org/downloads/)
+- [Auto-Editor](https://github.com/WyattBlue/auto-editor)
+  ```
+  pip install auto-editor
+  ```
+
 # Installation
+Once you have the required dependencies installing Auto-Silence-Cut is as simple as downloading Auto-Silence-Cut.py and placing it in your scripts folder for DaVinci Resolve.
+
+For Windows: `%PROGRAMDATA%\Blackmagic Design\DaVinci Resolve\Fusion\Scripts\Utility`
+
+For Mac: `/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Scripts/Utility`
+
 
 # Settings Explained
 
