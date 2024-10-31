@@ -10,6 +10,12 @@
 - [Installation](#installation)
 - [Settings Explained](#settings-explained)
 - [FAQ](#faq)
+    - [Is multi-track audio supported?](#is-multi-track-audio-supported)
+    - [Can I process multiple clips at once?](#can-i-process-multiple-clips-at-once)
+    - [Where are my settings saved?](#where-are-my-settings-saved)
+    - [How do I remove silent clips from the timeline?](#how-do-i-remove-silent-clips-from-the-timeline)
+    - [Can I adjust clips after Auto-Editor runs?](#can-i-adjust-clips-after-auto-editor-runs)
+    - [I ran the script but nothing happened?](#i-ran-the-script-but-nothing-happened)
 - [Contribute](#contribute)
 - [Known Issues](#known-issues)
 
@@ -86,14 +92,52 @@ For Mac: `/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/
 
 
 # Settings Explained
+- **LEFT TRIM MARGIN:** The amount of padding, in seconds, to leave *before* the edit (the left of detected audio)
+- **RIGHT TRIM MARGIN:** The amount of padding, in seconds, to leave *after* the edit (the right of detected audio)
+- **HIGHLIGHT COLOR:** The color of sound clips
+- **EDIT BASED ON THESE TRACKS:** Which audio tracks to use to search for silence. (multiple allowed)
+- **SKIP THIS WINDOW:** If checked, next time the script is launched GUI will be skipped and processing will begin immediatly. Use this if you always use the same settings.
 
 # FAQ
 
+### Is multi-track audio supported?
+Yes, silence detection across multiple audio tracks is allowed. Select which audio tracks you would like to process in the pop-up window.
+
+
+### Can I process multiple clips at once?
+Yes, you can process multiple clips simultaneously by adding them to the 'MASTER' folder. However, for optimal performance and to avoid potential issues, it's recommended to only process a few clips at a time.
+
+### Where are my settings saved?
+Auto-Editor saves settings automatically to:
+
+    Documents\Auto Editor\settings.json
+
+These settings are loaded the next time you run Auto-Editor. If the file is deleted or missing, default settings are restored and saved.
+
+### How do I remove silent clips from the timeline?
+After Auto-Editor adds the subclips to the timeline, silent clips are highlighted with no color. You can remove them by selecting:
+
+    Timeline -> Select Clips With Color -> Default Color
+
+This selects all silent clips, allowing you to ripple-delete them and remove gaps from your timeline.
+
+### Can I adjust clips after Auto-Editor runs?
+Yes, since the process is non-destructive, all subclips reference the original source material. You can extend or contract the handles of each subclip as needed.
+
+### I ran the script but nothing happened?
+Open up the console in DaVinci Resolve and check why. I tryied to code in as much user-friendly error handling as possible but if you still have trouble feel free to open up an issue.
+
 # Contribute
+If you got a fix in mind or feel like you could improve upon Auto-Silence-Cut feel free to make a fork of this repo, create a new branch, and submit a pull request. As long as the code is well documented and readable, I'd love to see it through!
+
+The Resolve API is very hard to navigate so here are some helpful resources:
+- [Unofficial Davinci Resolve API Docs](https://deric.github.io/DaVinciResolve-API-Docs/)
+- [More Detailed Davinci Resolve API Reference](https://resolvedevdoc.readthedocs.io/en/latest/API_basic.html)
+- [DaVinci Resolve Fusion Scripting Manuel](https://documents.blackmagicdesign.com/UserManuals/Fusion8_Scripting_Guide.pdf)
+- [Auto-Editor Github](https://github.com/WyattBlue/auto-editor)
 
 # Known Issues
 
-
-- sometimes extra tracks are created when creating new timeline. No idea why this is happening but i think its a DR problem. It used to cause problems with coloring clips but that should be resolved now.
+- sometimes extra tracks are created when creating new timeline. No idea why this is happening but I think its a DR problem.
 
 - there is a case where sometimes the output timeline will be slightly shorter than the original file by a frame or two. I believe this is something to do with the way auto-editor handles cuts.
