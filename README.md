@@ -1,7 +1,26 @@
 <!-- omit in toc -->
 # Davinci Resolve FREE Auto Silence Cut
-<!-- add summary here -->
-<!-- mention nondestructive -->
+Automatically edit video (non-destructively) by analyzing audio, cut out silence, and import straight into davinci resolve!
+
+- Analyze video based off of **multiple audio tracks**
+- **Edit out silence** with adjustable margins
+- **Completely free** and runs locally within Davinci Resolve (even on free version)
+- 100% Non-destructive
+- Process multiple clips simultaneously
+- Highlight silent and non-silent parts in timeline
+- Automatically create timeline with subclips ready to edit!
+
+
+> [!NOTE]
+> Works best with well processed audio (clearly defined silent parts). Currently there is no threshold adjustment though this is a feature im looking to including.
+
+
+<!-- omit in toc -->
+## Love it? Wanna Support?
+
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/YourAverageMo)
+
+![github-stars-logo_Color](https://github.com/user-attachments/assets/6d67193f-fa3f-420e-9091-2b5e49e9918b)
 
 <!-- omit in toc -->
 ## Table of Contents
@@ -106,7 +125,7 @@ For Mac: `/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/
 - **RIGHT TRIM MARGIN:** The amount of padding, in seconds, to leave *after* the edit (the right of detected audio)
 - **HIGHLIGHT COLOR:** The color of sound clips
 - **EDIT BASED ON THESE TRACKS:** Which audio tracks to use to search for silence. (multiple allowed)
-- **SKIP THIS WINDOW:** If checked, next time the script is launched GUI will be skipped and processing will begin immediatly. Use this if you always use the same settings.
+- **SKIP THIS WINDOW:** If checked, next time the script is launched GUI will be skipped and processing will begin immediately. Use this if you always use the same settings.
 
 # FAQ
 
@@ -135,7 +154,7 @@ This selects all silent clips, allowing you to ripple-delete them and remove gap
 Yes, since the process is non-destructive, all subclips reference the original source material. You can extend or contract the handles of each subclip as needed.
 
 ### I ran the script but nothing happened?
-Open up the console in DaVinci Resolve and check why. I tryied to code in as much user-friendly error handling as possible but if you still have trouble feel free to open up an issue.
+Open up the console in DaVinci Resolve and check why. I tried to code in as much user-friendly error handling as possible but if you still have trouble feel free to open up an issue.
 
 # Contribute
 If you got a fix in mind or feel like you could improve upon Auto-Silence-Cut feel free to make a fork of this repo, create a new branch, and submit a pull request. As long as the code is well documented and readable, I'd love to see it through!
