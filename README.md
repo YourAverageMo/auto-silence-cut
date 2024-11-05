@@ -23,6 +23,8 @@
 
 <!-- omit in toc -->
 ### Step 1: Add Clips to the 'Master' Folder
+![Step1](https://github.com/user-attachments/assets/7a5c17c3-df8b-441a-84d4-c67064d4dc76)
+
 Drag and drop all the clips you want Auto-Silence-Cut to process into the 'MASTER' folder in DaVinci Resolve. 
 
 > **Note:** The current version of Auto-Silence-Cut processes **all** video files in the 'MASTER' folder.
@@ -49,6 +51,8 @@ If the `settings.json` file is missing or has been deleted, default settings wil
 
 <!-- omit in toc -->
 ### Step 5: Click 'START'
+![Step5](https://github.com/user-attachments/assets/8ce35991-1140-4be7-995b-f87efc4cf1bd)
+
 When you're ready, click 'START' and **avoid using the keyboard or mouse** while Auto-Silence-Cut runs. The script will automatically insert the edited (non-destructive) clips into the timeline, and any input during this time could interfere with that process.
 
 The duration of this process depends on how much footage you are processing. For optimal performance, it's recommended to process no more than 45 minutes of footage at a time to prevent DaVinci Resolve from lagging.
@@ -57,6 +61,8 @@ Once the process is complete, a message will appear in the console, and the Auto
 
 <!-- omit in toc -->
 ### Step 6: Adjust Subclips
+![Step6](https://github.com/user-attachments/assets/cbc2dda5-4ba2-4ecd-9ffa-217142926c7b)
+
 After Auto-Silence-Cut has added the subclips to the timeline, you can adjust them as needed. Since this process is non-destructive, all subclips reference the original source material, allowing you to extend or contract the handles of each subclip.
 
 If you're unfamiliar with this, refer to the provided GIF for guidance.
@@ -64,8 +70,12 @@ If you're unfamiliar with this, refer to the provided GIF for guidance.
 - **Silent Clips**: These clips will have no color.
 - **Sound Clips**: Clips where sound was detected will be highlighted with the color selected in the settings (`Highlight Color`, default is Orange).
 
+![Step6 2](https://github.com/user-attachments/assets/985bda09-d1b9-4776-abd7-0b388864373a)
+
 <!-- omit in toc -->
 ### Step 7: Remove Silence
+![Step7](https://github.com/user-attachments/assets/71e7ad28-ef21-4029-ad73-7542dfe33a1a)
+
 To remove all the silent clips,
 
     Timeline -> Select Clips With Color -> Default Color
