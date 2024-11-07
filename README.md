@@ -26,6 +26,8 @@ Automatically edit video (non-destructively) by analyzing audio, cut out silence
 ## Table of Contents
 - [Usage Guide](#usage-guide)
 - [Requirements](#requirements)
+    - [1. Install Python 3.7+](#1-install-python-37)
+    - [2. Install Auto-Editor](#2-install-auto-editor)
 - [Installation](#installation)
 - [Settings Explained](#settings-explained)
 - [FAQ](#faq)
@@ -104,13 +106,35 @@ This will select and highlight all the silent clips in the timeline and from the
 
 # Requirements
 
-List of all required dependencies:
+To ensure full functionality of this project, please follow the steps below to install each required dependency. If you're new to coding or Python, each step includes detailed instructions to help you get started.
 
-- [Python](https://www.python.org/downloads/)
-- [Auto-Editor](https://github.com/WyattBlue/auto-editor)
-  ```
-  pip install auto-editor
-  ```
+### 1. Install [Python 3.7+](https://www.python.org/downloads/)
+
+   This project requires **Python 3.7 or higher**.
+
+   - **Step 1:** Visit the [official Python download page](https://www.python.org/downloads/) and click the button to download the latest version.
+   - **Step 2:** Open the downloaded file and follow the installation instructions.
+   - **Step 3:** During installation, **make sure to check the box that says "Add Python to PATH"**
+   - **Step 4:** Once installed, open your command line (e.g., Command Prompt, Terminal) and type the following command to confirm Python is installed:
+     ```bash
+     python --version
+     ```
+     You should see a version number (e.g., `Python 3.10.5`) this means python was successfully installed.
+
+### 2. Install [Auto-Editor](https://github.com/WyattBlue/auto-editor)
+
+   Auto-Editor is a tool that helps with automatic video editing, which is a dependency for this project.
+
+   - **Step 1:** Open your command line (Command Prompt on Windows, Terminal on Mac).
+   - **Step 2:** Enter the following command to install Auto-Editor:
+     ```bash
+     pip install auto-editor
+     ```
+   - **Step 3:** After the installation completes, check that Auto-Editor is installed by typing:
+     ```bash
+     auto-editor --help
+     ```
+     If the command is recognized, you’re all set. If you see an error, try restarting your command line or refer to the [Auto-Editor documentation](https://github.com/WyattBlue/auto-editor) for help.
 
 # Installation
 Once you have the required dependencies installing Auto-Silence-Cut is as simple as downloading Auto-Silence-Cut.py and placing it in your scripts folder for DaVinci Resolve.
