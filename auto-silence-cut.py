@@ -20,6 +20,20 @@ def input_to_float(text: str) -> float:
         print('trim margins are not numbers, using default values of 0.2')
         return 0.2
 
+def input_to_float_dB(text: str) -> float:
+    """Converts input `text` into a float except returns 0.2 (default value) on ValueError (meaning input text is not only numbers). Used to convert user input felids in GUI."""
+
+    #check added since value threshold is different from margin
+
+    if text == '':
+        return False
+    try:
+        number = float(text)
+        return number
+    except ValueError:
+        # error handling in case user changes values in settings.json or UI
+        print('trashhold is not numbers, using default values of -20.0')
+        return -20.0
 
 def load_settings() -> bool:
     """Handles loading of settings.json file, if exists = False creates one with default settings. Sets Global vars:
@@ -46,8 +60,10 @@ def load_settings() -> bool:
             'L_TRIM_MARGIN': 0.2,
             'R_TRIM_MARGIN': 0.2,
             'USE_AUDIO_TRACK': [0],
+            'GATE_DB': -20.0,
             'HIGHLIGHT_COLOR': 'Orange',
             'HIGHLIGHT_COLOR_INDEX': 0,
+            'DELETE_SILENCE': False,
             'SKIP_GUI': False,
         }
         with open(settings_file, 'w') as f:
@@ -57,19 +73,24 @@ def load_settings() -> bool:
     # i think its neater to use globals here than to have these in the main loop
     global L_TRIM_MARGIN
     global R_TRIM_MARGIN
+    global GATE_DB
     global USE_AUDIO_TRACKS
     global HIGHLIGHT_COLOR
     global HIGHLIGHT_COLOR_INDEX
+    global DELETE_SILENCE
     global SKIP_GUI
 
     try:
         L_TRIM_MARGIN = input_to_float(settings["L_TRIM_MARGIN"])
         R_TRIM_MARGIN = input_to_float(settings["R_TRIM_MARGIN"])
+        GATE_DB = input_to_float_dB(settings["GATE_DB"])
         L_TRIM_MARGIN = settings["L_TRIM_MARGIN"]
         R_TRIM_MARGIN = settings["R_TRIM_MARGIN"]
+        GATE_DB = settings["GATE_DB"]
         USE_AUDIO_TRACKS = settings["USE_AUDIO_TRACK"]
         HIGHLIGHT_COLOR = settings["HIGHLIGHT_COLOR"]
         HIGHLIGHT_COLOR_INDEX = settings["HIGHLIGHT_COLOR_INDEX"]
+        DELETE_SILENCE = settings["DELETE_SILENCE"]
         SKIP_GUI = settings["SKIP_GUI"]
     except KeyError:
         print(
@@ -147,6 +168,10 @@ def parse_timeline_json(file_path: Path, total_frames: int) -> bool:
                 'endFrame': clip['offset'] + clip['dur'],
             }
         elif clip['speed'] == 2.0:
+            #skips appending silent clips if auto-delete option is enabled
+            if DELETE_SILENCE == True:
+                continue
+
             silent_clips.append(i)
 
             # Calculate start and dur for speed 2.0
@@ -320,12 +345,12 @@ def main():
     # formating for auto-edit is diff for 1+ audio streams
     if len(USE_AUDIO_TRACKS) == 1:
         # i.e. `audio:stream=0`
-        edit_param = f'audio:stream={USE_AUDIO_TRACKS[0]}'
+        edit_param = f'audio:stream={USE_AUDIO_TRACKS[0]} audio:{GATE_DB}dB'
     else:
         # i.e. `(or audio:stream=0 audio:stream=1)`
         streams = ' '.join(f'audio:stream={stream}'
                            for stream in USE_AUDIO_TRACKS)
-        edit_param = f"(or {streams})"
+        edit_param = f"(or {streams}) audio:{GATE_DB}dB"
 
     for clip_idx, clip in enumerate(clips):
         file_path = clip.GetClipProperty()['File Path']
@@ -395,7 +420,9 @@ def open_user_interface():
     start_button = 'start_button'
     l_trim_input = 'l_trim_input'
     r_trim_input = 'r_trim_input'
+    gate_db_input = 'gate_db_input'
     highlight_color_input = 'highlight_color_input'
+    delete_silence_check = 'delete_silence_check'
     skip_gui_check = 'skip_ui'
 
     # check for existing instance
@@ -462,12 +489,6 @@ def open_user_interface():
                     'Bold': True,
                 }),
             }),
-            ui.Label({
-                'Text': 'Highlight Color:',
-                'Font': ui.Font({
-                    'Bold': True,
-                }),
-            }),
         ]),
 
         # inputs for l/r trim and color
@@ -477,6 +498,30 @@ def open_user_interface():
             }),
             ui.LineEdit({
                 "ID": r_trim_input,
+            }),
+        ]),
+        ui.VGap(5),
+
+        # Labels for l/r trim
+        ui.HGroup({'Weight': 0}, [
+            ui.Label({
+                'Text': 'Audio Threshold:',
+                'Font': ui.Font({
+                    'Bold': True,
+                }),
+            }),
+            ui.Label({
+                'Text': 'Highlight Color:',
+                'Font': ui.Font({
+                    'Bold': True,
+                }),
+            }),
+        ]),
+
+        # inputs for audio threshhold and color
+        ui.HGroup({'Weight': 0}, [
+            ui.LineEdit({
+                "ID": gate_db_input,
             }),
             ui.ComboBox({
                 'ID': highlight_color_input,
@@ -494,6 +539,14 @@ def open_user_interface():
         }),
         ui.HGroup({'Weight': 0}, construct_checkboxes(audio_track_count)),
 
+        # delete silence immidiately
+        ui.CheckBox({
+            'ID': delete_silence_check,
+            'Text':
+            "Automatically delete detected silence?",
+            'Weight': 0
+        }),
+
         # skip GUI
         ui.CheckBox({
             'ID': skip_gui_check,
@@ -509,7 +562,7 @@ def open_user_interface():
         {
             'ID': win_id,
             'WindowTitle': "Auto Editor by Muhammed Yilmaz",
-            'Geometry': [20, 50, 530, 320],
+            'Geometry': [20, 50, 530, 390],
         }, winLayout)
     itm = win.GetItems()
 
@@ -533,6 +586,7 @@ def open_user_interface():
 
     itm[l_trim_input].Text = str(L_TRIM_MARGIN)
     itm[r_trim_input].Text = str(R_TRIM_MARGIN)
+    itm[gate_db_input].Text = str(GATE_DB)
 
     # window events
     def save_settings():
@@ -549,9 +603,11 @@ def open_user_interface():
         settings = {
             'L_TRIM_MARGIN': input_to_float(itm[l_trim_input].Text),
             'R_TRIM_MARGIN': input_to_float(itm[r_trim_input].Text),
+            'GATE_DB': input_to_float_dB(itm[gate_db_input].Text),
             'USE_AUDIO_TRACK': USE_AUDIO_TRACKS_EDITED,
             'HIGHLIGHT_COLOR': itm[highlight_color_input].CurrentText,
             'HIGHLIGHT_COLOR_INDEX': itm[highlight_color_input].CurrentIndex,
+            'DELETE_SILENCE': itm[delete_silence_check].Checked,
             'SKIP_GUI': itm[skip_gui_check].Checked,
         }
         with open(settings_file, 'w') as f:
