@@ -21,7 +21,7 @@ def input_to_float(text: str) -> float:
         return 0.2
 
 def input_to_float_dB(text: str) -> float:
-    """Converts input `text` into a float except returns 0.2 (default value) on ValueError (meaning input text is not only numbers). Used to convert user input felids in GUI."""
+    """Converts input `text` into a float except returns -20.0 (default value) on ValueError (meaning input text is not only numbers). Used to convert user input felids in GUI."""
 
     #check added since value threshold is different from margin
 
@@ -475,23 +475,23 @@ def open_user_interface():
         }),
         ui.VGap(5),
 
-        # Labels for l/r trim and color
+        # Labels for l/r trim
         ui.HGroup({'Weight': 0}, [
             ui.Label({
-                'Text': 'Left Trim Margin:',
+                'Text': 'Left Trim Margin [s]:',
                 'Font': ui.Font({
                     'Bold': True,
                 }),
             }),
             ui.Label({
-                'Text': 'Right Trim Margin:',
+                'Text': 'Right Trim Margin [s]:',
                 'Font': ui.Font({
                     'Bold': True,
                 }),
             }),
         ]),
 
-        # inputs for l/r trim and color
+        # inputs for l/r trim
         ui.HGroup({'Weight': 0}, [
             ui.LineEdit({
                 "ID": l_trim_input,
@@ -502,10 +502,10 @@ def open_user_interface():
         ]),
         ui.VGap(5),
 
-        # Labels for l/r trim
+        # Labels for audio threshhold and color
         ui.HGroup({'Weight': 0}, [
             ui.Label({
-                'Text': 'Audio Threshold:',
+                'Text': 'Audio Threshold [dB]:',
                 'Font': ui.Font({
                     'Bold': True,
                 }),
