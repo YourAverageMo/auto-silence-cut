@@ -587,7 +587,8 @@ def open_user_interface():
     itm[l_trim_input].Text = str(L_TRIM_MARGIN)
     itm[r_trim_input].Text = str(R_TRIM_MARGIN)
     itm[gate_db_input].Text = str(GATE_DB)
-
+    itm[delete_silence_check].Checked = DELETE_SILENCE
+    
     # window events
     def save_settings():
         # resolve api is weird, TextEdit boxes need to be strings and spin boxes cant be floats. so in order to give user feedback i have to do it this weird way...
