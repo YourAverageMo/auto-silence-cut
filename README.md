@@ -12,8 +12,14 @@ Automatically edit video (non-destructively) by analyzing audio, cut out silence
 
 
 > [!NOTE]
-> Works best with well processed audio (clearly defined silent parts). Currently there is no threshold adjustment though this is a feature im looking to including.
+> Works best with well processed audio (clearly defined silent parts).
+>
+> There is a threshold adjustment, but you might have to experiment around with it to get a good result depending on your audio source.
 
+> [!WARNING]
+> Blackmagicdesign did remove the ability to use scripts with a GUI in the free version of DavinciResolve with version 19.1 [Source](https://forum.blackmagicdesign.com/viewtopic.php?f=21&t=149311&p=1100366#p1100366)
+> 
+> This script still works with older versions or DaVinci Resolve Studio without any problems.
 
 <!-- omit in toc -->
 ## Love it? Wanna Support?
@@ -103,6 +109,11 @@ To remove all the silent clips,
 
 This will select and highlight all the silent clips in the timeline and from there you can just ripple delete all of them to leave no gaps.
 
+> [!NOTE]
+> You can also choose to immediately delete all the silence with the option "Automatically delete detected silence".
+>
+> **This removes the ability to adjust timings as shown in step 6!**
+
 
 # Requirements
 
@@ -147,8 +158,10 @@ For Mac: `/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/
 # Settings Explained
 - **LEFT TRIM MARGIN:** The amount of padding, in seconds, to leave *before* the edit (the left of detected audio)
 - **RIGHT TRIM MARGIN:** The amount of padding, in seconds, to leave *after* the edit (the right of detected audio)
+- **AUDIO THRESHOLD:** The loudnes above which the audio will be counted as detected (usefull for noisy audio).
 - **HIGHLIGHT COLOR:** The color of sound clips
 - **EDIT BASED ON THESE TRACKS:** Which audio tracks to use to search for silence. (multiple allowed)
+- **AUTOMATICALLY DELETE DETECTED SILENCE:** Automatically deletes all silent parts, so only the audible parts are put on the timeline.
 - **SKIP THIS WINDOW:** If checked, next time the script is launched GUI will be skipped and processing will begin immediately. Use this if you always use the same settings.
 
 # FAQ
