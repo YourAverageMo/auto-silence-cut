@@ -10,6 +10,9 @@ Automatically edit video (non-destructively) by analyzing audio, cut out silence
 - Highlight silent and non-silent parts in timeline
 - Automatically create timeline with subclips ready to edit!
 
+**FEATURES ADDED**
+- Audio threshold adjustment and auto-silence deletion. 05-25 (thanks [@Schkullie](https://github.com/Schkullie))
+
 
 > [!NOTE]
 > Works best with well processed audio (clearly defined silent parts).
@@ -19,7 +22,7 @@ Automatically edit video (non-destructively) by analyzing audio, cut out silence
 > [!WARNING]
 > Blackmagicdesign did remove the ability to use scripts with a GUI in the free version of DavinciResolve with version 19.1 [Source](https://forum.blackmagicdesign.com/viewtopic.php?f=21&t=149311&p=1100366#p1100366)
 > 
-> This script still works with older versions or DaVinci Resolve Studio without any problems.
+> This script **still works** on all versions of DR, but the graphical user interface with only function with older versions or DaVinci Resolve Studio. see [Settings Explained](#settings-explained) 'skip this window'
 
 <!-- omit in toc -->
 ## Love it? Wanna Support?
