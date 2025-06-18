@@ -163,6 +163,9 @@ def parse_timeline_json(file_path: Path, total_frames: int) -> bool:
     silent_clips = []
 
     for i, clip in enumerate(timeline_clips):
+        previous_clip = timeline_clips[i - 1] if i > 0 else None
+        next_clip = timeline_clips[i + 1] if i < len(timeline_clips) - 1 else None
+
         if clip["speed"] == 1.0:
             new_clip = {
                 "startFrame": clip["offset"],
@@ -176,8 +179,7 @@ def parse_timeline_json(file_path: Path, total_frames: int) -> bool:
             silent_clips.append(i)
 
             # Calculate start and dur for speed 2.0
-            previous_clip = timeline_clips[i - 1] if i > 0 else None
-            next_clip = timeline_clips[i + 1] if i < len(timeline_clips) - 1 else None
+            # previous_clip and next_clip are now defined at the top of the loop
 
             # Calculate new start
             if previous_clip:
@@ -197,7 +199,7 @@ def parse_timeline_json(file_path: Path, total_frames: int) -> bool:
                 "endFrame": new_start + new_dur,
             }
 
-        if i > 0:
+        if i > 0 and not (clip["speed"] == 1.0 and previous_clip["speed"] == 1.0):
             new_clip["startFrame"] += 1
         adjusted_clips.append(new_clip)
 
@@ -408,7 +410,7 @@ def main():
 
             if is_new_timeline:
                 create_timeline_with_clip(parsed_timeline, clip_idx)
-                print(f"new timeline created")
+                print("new timeline created")
                 # append rest of the clips in first file
                 append_clips(parsed_timeline, clip_idx, True)
                 is_new_timeline = False
@@ -693,61 +695,62 @@ def open_user_interface():
 # -- Main loop starts here
 # --
 
-# set/make settings folder
-settings_dir = Path().home() / "Documents" / "Auto Editor"
-settings_dir.mkdir(exist_ok=True)
-load_settings()
+if __name__ == "__main__":
+    # set/make settings folder
+    settings_dir = Path().home() / "Documents" / "Auto Editor"
+    settings_dir.mkdir(exist_ok=True)
+    load_settings()
 
-try:
-    # Attempt to get the DaVinci Resolve API object
-    resolve = app.GetResolve()
-    if resolve:
-        if SKIP_GUI:
-            # i no nested if statement... bite me.
-            print(
-                f"Skipping user interface, to re-enable set SKIP_GUI to false in settings.json at {settings_dir}"
-            )
-        project_manager = resolve.GetProjectManager()
-        project = project_manager.GetCurrentProject()
-        media_pool = project.GetMediaPool()
-        root_folder = media_pool.GetRootFolder()
-        folders = root_folder.GetSubFolderList()
-        clips = root_folder.GetClipList()
-        current_timeline = project.GetCurrentTimeline()
-        ui = fusion.UIManager
-        dispatcher = bmd.UIDispatcher(ui)
+    try:
+        # Attempt to get the DaVinci Resolve API object
+        resolve = app.GetResolve()
+        if resolve:
+            if SKIP_GUI:
+                # i no nested if statement... bite me.
+                print(
+                    f"Skipping user interface, to re-enable set SKIP_GUI to false in settings.json at {settings_dir}"
+                )
+            project_manager = resolve.GetProjectManager()
+            project = project_manager.GetCurrentProject()
+            media_pool = project.GetMediaPool()
+            root_folder = media_pool.GetRootFolder()
+            folders = root_folder.GetSubFolderList()
+            clips = root_folder.GetClipList()
+            current_timeline = project.GetCurrentTimeline()
+            ui = fusion.UIManager
+            dispatcher = bmd.UIDispatcher(ui)
 
-except NameError:
-    print("Script must run inside DaVinci Resolve. aborting..")
-    exit()
+    except NameError:
+        print("Script must run inside DaVinci Resolve. aborting..")
+        exit()
 
-# error handling for files with diff # audio tracks
-audio_track_count = diff_audio_tracks()
-if not audio_track_count:
-    print(
-        "The video files in the scan directory do not all contain the same number of audio tracks. Please address this issue and run the script separately for files with different # of audio tracks"
-    )
-    print("aborting...")
-    exit()
+    # error handling for files with diff # audio tracks
+    audio_track_count = diff_audio_tracks()
+    if not audio_track_count:
+        print(
+            "The video files in the scan directory do not all contain the same number of audio tracks. Please address this issue and run the script separately for files with different # of audio tracks"
+        )
+        print("aborting...")
+        exit()
 
-# error handling
-if USE_AUDIO_TRACKS and max(USE_AUDIO_TRACKS) > audio_track_count:
-    USE_AUDIO_TRACKS = [0]
-    SKIP_GUI = False
-    print(
-        "One selected audio track in user settings was not available on current clip(s) restoring default settings "
-    )
+    # error handling
+    if USE_AUDIO_TRACKS and max(USE_AUDIO_TRACKS) > audio_track_count:
+        USE_AUDIO_TRACKS = [0]
+        SKIP_GUI = False
+        print(
+            "One selected audio track in user settings was not available on current clip(s) restoring default settings "
+        )
 
-if resolve and not SKIP_GUI:
-    # open_user_interface is just a way of loading and saving settings. ezpz
-    construct_checkboxes(audio_track_count)
-    open_user_interface()
+    if resolve and not SKIP_GUI:
+        # open_user_interface is just a way of loading and saving settings. ezpz
+        construct_checkboxes(audio_track_count)
+        open_user_interface()
 
-# logging
-print("beginning process.")
-print("---")
+    # logging
+    print("beginning process.")
+    print("---")
 
-main()
+    main()
 
-print("---")
-print("process complete.")
+    print("---")
+    print("process complete.")
