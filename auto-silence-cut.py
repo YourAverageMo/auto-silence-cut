@@ -13,7 +13,7 @@ def input_to_float(text: str) -> float:
     if text == "":
         return False
     try:
-        number = float(text)
+    number = float(text)
         return number
     except ValueError:
         # error handling in case user changes values in settings.json or UI
@@ -149,7 +149,7 @@ def parse_timeline_json(file_path: Path, total_frames: int) -> bool:
     hence why we have to parse the json with this script."""
 
     # Load the timeline JSON
-    with open(f"{file_path.parent / file_path.stem}.json", "r") as f:
+    with open(f"{file_path.parent / file_path.stem}.v3", "r") as f:
         timeline = json.load(f)
 
     # get number of audio tracks
@@ -384,7 +384,7 @@ def main():
                     "--margin",
                     f"{L_TRIM_MARGIN}s,{R_TRIM_MARGIN}s",
                     "--export",
-                    "json",
+                    "v3",
                     "--silent-speed",
                     "2",
                     "--video-speed",
