@@ -341,12 +341,27 @@ def main():
 
     # Formatting for auto-editor is different for 1+ audio streams
     if len(USE_AUDIO_TRACKS) == 1:
-        # i.e. `audio:stream=0`
-        edit_param = f"audio:stream={USE_AUDIO_TRACKS[0]} audio:{GATE_DB}dB"
+        # Using sugary syntax, e.g., "audio:-20dB,stream=0"
+        edit_param = f"audio:{GATE_DB}dB,stream={USE_AUDIO_TRACKS[0]}"
     else:
-        # i.e. `(or audio:stream=0 audio:stream=1)`
-        streams = " ".join(f"audio:stream={stream}" for stream in USE_AUDIO_TRACKS)
-        edit_param = f"(or {streams}) audio:{GATE_DB}dB"
+        # For multiple tracks, we must use a palet expression.
+        # The palet 'audio' function requires a linear threshold (0.0 to 1.0),
+        # not a dB value. We convert the dB value to a linear amplitude value.
+        # Formula: amplitude = 10^(dB / 20)
+        try:
+            threshold = 10 ** (GATE_DB / 20)
+        except (ValueError, OverflowError):
+            # Fallback to a sensible default if conversion fails
+            print(
+                f"Warning: Could not convert GATE_DB value '{GATE_DB}' to a linear threshold. Using default."
+            )
+            threshold = 0.1  # Corresponds to -20dB
+
+        # Using palet expression syntax, e.g., "(or (audio 0.1 #:stream 0) (audio 0.1 #:stream 1))"
+        streams = " ".join(
+            f"audio:{threshold},stream={stream}" for stream in USE_AUDIO_TRACKS
+        )
+        edit_param = f"(or {streams})"
 
     for clip_idx, clip in enumerate(clips):
         file_path = clip.GetClipProperty()["File Path"]
