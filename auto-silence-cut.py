@@ -1,5 +1,6 @@
 import subprocess
 import json
+import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
 
@@ -13,7 +14,7 @@ def input_to_float(text: str) -> float:
     if text == "":
         return False
     try:
-    number = float(text)
+        number = float(text)
         return number
     except ValueError:
         # error handling in case user changes values in settings.json or UI
@@ -108,6 +109,8 @@ def load_settings() -> bool:
 
 
 # NOTE ChangeTimecode() is legacy code use change_clip_colors() now.
+
+
 def ChangeTimecode(timecode: str) -> str:
     """move play head back so GetCurrentVideoItem() returns most recent append clip. Appending clip after play head move does not overwrite clip from play head position
 
@@ -142,152 +145,40 @@ def ChangeTimecode(timecode: str) -> str:
     return "{:02d}:{:02d}:{:02d}:{:02d}".format(hours, minutes, seconds, frames)
 
 
-def parse_timeline_json(file_path: Path, total_frames: int) -> bool:
-    r"""Takes the timeline json file created by `auto-editor` and parses the data inside it adjusting the speed changes and fixing the mismatched frametimes. Returns new file ends with `_parsed` in the same dir.
+def sanitize_resolve_xml(xml_path):
+    """
+    Removes clips and extra resource information from a Resolve XML file,
+    leaving an empty timeline structure.
+    """
+    try:
+        tree = ET.parse(xml_path)
+        root = tree.getroot()
 
-    NOTE: 'dur' = length of clip, 'offset' = the source clip frame start time (NOT 'start'), 'speed' = 2 is the way the script knows what clip is silence. Setting speed to 2 messes with the 'start' 'offset' and 'dur' frames
-    hence why we have to parse the json with this script."""
+        # Find the sequence tag and clear its children
+        sequence = root.find(".//sequence")
+        if sequence is not None:
+            # This is a safe way to remove all children
+            for child in list(sequence):
+                sequence.remove(child)
 
-    # Load the timeline JSON
-    with open(f"{file_path.parent / file_path.stem}.v3", "r") as f:
-        timeline = json.load(f)
+        # Find the resources tag, keep only the first format tag
+        resources = root.find(".//resources")
+        if resources is not None:
+            first_format_tag = resources.find("format")
+            # Remove all children of <resources>
+            for child in list(resources):
+                resources.remove(child)
+            # Add the first format tag back if it was found
+            if first_format_tag is not None:
+                resources.append(first_format_tag)
 
-    # get number of audio tracks
-    audio_track_count = len(timeline["a"])
-
-    # Extract clips from the JSON
-    timeline_clips = timeline.get("v", [])[0]
-
-    # Init a list to hold adjusted clips
-    adjusted_clips = []
-    silent_clips = []
-
-    for i, clip in enumerate(timeline_clips):
-        previous_clip = timeline_clips[i - 1] if i > 0 else None
-        next_clip = timeline_clips[i + 1] if i < len(timeline_clips) - 1 else None
-
-        if clip["speed"] == 1.0:
-            new_clip = {
-                "startFrame": clip["offset"],
-                "endFrame": clip["offset"] + clip["dur"],
-            }
-        elif clip["speed"] == 2.0:
-            # skips appending silent clips if auto-delete option is enabled
-            if DELETE_SILENCE == True:
-                continue
-
-            silent_clips.append(i)
-
-            # Calculate start and dur for speed 2.0
-            # previous_clip and next_clip are now defined at the top of the loop
-
-            # Calculate new start
-            if previous_clip:
-                new_start = previous_clip["offset"] + previous_clip["dur"]
-            else:
-                new_start = clip["start"]
-
-            # Calculate new dur
-            if next_clip:
-                new_dur = next_clip["offset"] - new_start
-            else:
-                new_dur = total_frames - new_start
-
-            # Update clip with new start and dur
-            new_clip = {
-                "startFrame": new_start,
-                "endFrame": new_start + new_dur,
-            }
-
-        if i > 0 and not (clip["speed"] == 1.0 and previous_clip["speed"] == 1.0):
-            new_clip["startFrame"] += 1
-        adjusted_clips.append(new_clip)
-
-    # Save new JSON file
-
-    parsed_timeline = {
-        "audio_track_count": audio_track_count,
-        "silent_clips": silent_clips,
-        "v": adjusted_clips,
-    }
-
-    with open(f"{file_path.parent / file_path.stem}_parsed.json", "w") as f:
-        json.dump(parsed_timeline, f, indent=4)
-
-    return parsed_timeline
-
-
-def create_timeline_with_clip(parsed_timeline: dict, clip_idx: int) -> bool:
-    """Creates new timeline and appends first clip found in the newly created `parsed_timeline`."""
-
-    subclips_json_parsed = parsed_timeline.get("v", [])
-    audio_track_count = parsed_timeline["audio_track_count"]
-    timestamp = datetime.now().strftime("%y%m%d%H%M")
-
-    # make new timeline using first clip
-    media_pool.CreateTimelineFromClips(
-        f"cool timeline yo {timestamp}",
-        [
-            {
-                "mediaPoolItem": clips[clip_idx],
-                "startFrame": subclips_json_parsed[0]["startFrame"],
-                "endFrame": subclips_json_parsed[0]["endFrame"],
-            }
-        ],
-    )
-
-    # set current_timeline
-    global current_timeline
-    current_timeline = project.GetCurrentTimeline()
-
-    # clip color
-    # 0 since this is 1st subclip
-    if 0 not in parsed_timeline["silent_clips"] and HIGHLIGHT_COLOR is not None:
-        change_clip_colors(HIGHLIGHT_COLOR, audio_track_count)
-
-
-def append_clips(
-    parsed_timeline: dict, clip_idx: int, skip_first: bool = False
-) -> bool:
-    """Appends all clips found in the newly created `parsed_timeline`. if skip_first = True the first clip in `parsed_timeline` will be skiped (meaning it was used to create a new timeline). Also calls `change_clip_colors()` if needed."""
-
-    subclips_json_parsed = parsed_timeline.get("v", [])
-    audio_track_count = parsed_timeline["audio_track_count"]
-
-    # appending clips
-    for idx, subclip in enumerate(subclips_json_parsed):
-        # i could list slice parsed_timeline and remove idx 0 if skip_first instead of checking if every subclip... but for now this is fine. if it causes performance issues i will change it
-        if skip_first and idx == 0:
-            continue
-        media_pool.AppendToTimeline(
-            [
-                {
-                    "mediaPoolItem": clips[clip_idx],
-                    "startFrame": subclip["startFrame"],
-                    "endFrame": subclip["endFrame"],
-                }
-            ]
-        )
-
-        # clip color
-        if idx not in parsed_timeline["silent_clips"] and HIGHLIGHT_COLOR is not None:
-            change_clip_colors(HIGHLIGHT_COLOR, audio_track_count)
-
-
-def change_clip_colors(color: str, audio_track_count: int) -> bool:
-    "Changes all video and audio track colors to given `color` for the last clip on the timeline"
-    # get last clip index on timeline horizontally. leave on audio just incase user is only using audio
-    subclip_idx = len(current_timeline.GetItemListInTrack("audio", 1)) - 1
-
-    # set video track color
-    current_timeline.GetItemListInTrack("video", 1)[subclip_idx].SetClipColor(color)
-
-    # iter over audio tracks vertically
-    # NOTE for some reason DR api track index's start at 1 not 0 so thats the reason for the weird range()
-    for i in range(1, audio_track_count + 1):
-        current_timeline.GetItemListInTrack("audio", i)[subclip_idx].SetClipColor(color)
-
-    return True
+        # Write the modified XML back to the file
+        tree.write(xml_path)
+        print("XML sanitization successful.")
+        return True
+    except Exception as e:
+        print(f"ERROR: Failed to parse or modify XML file at {xml_path}: {e}")
+        return False
 
 
 def diff_audio_tracks() -> int:
@@ -349,15 +240,106 @@ def construct_checkboxes(audio_tracks: int):
     return checkbox_group
 
 
+def populate_and_color_timeline(
+    all_clips_json_path: Path,
+    audible_clips_json_path: Path,
+    source_clip,
+    delete_silence: bool,
+    highlight_color: str,
+    timeline_offset: int,
+):
+    """
+    Populates the timeline using a comprehensive JSON and colors audible clips
+    regardless of the delete_silence setting.
+    """
+    try:
+        with open(all_clips_json_path, "r") as f:
+            all_clips_data = json.load(f)
+        with open(audible_clips_json_path, "r") as f:
+            audible_clips_data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Error reading JSON files: {e}")
+        return False
+
+    # Create a set of audible source offsets for quick lookup
+    audible_offsets = {clip["offset"] for clip in audible_clips_data.get("v", [[]])[0]}
+
+    video_clips_to_process = all_clips_data.get("v", [[]])
+    if not video_clips_to_process or not video_clips_to_process[0]:
+        print("No video clips found in the main JSON file.")
+        return True
+
+    total_source_frames = int(source_clip.GetClipProperty("Frames"))
+    clips_to_append = []
+
+    num_clips = len(video_clips_to_process[0])
+    for i, clip_data in enumerate(video_clips_to_process[0]):
+        start_frame = clip_data["offset"]
+        is_audible = start_frame in audible_offsets
+
+        # Decide whether to append the clip
+        if not delete_silence or (delete_silence and is_audible):
+            if i == num_clips - 1:
+                end_frame = total_source_frames - 1
+            else:
+                end_frame = start_frame + clip_data["dur"] - 1
+
+            new_clip = {
+                "mediaPoolItem": source_clip,
+                "startFrame": start_frame,
+                "endFrame": end_frame,
+            }
+            clips_to_append.append(new_clip)
+
+    if not clips_to_append:
+        print("No clips to append after processing.")
+        return True
+
+    # Get the number of items on the video track before appending
+    item_count_before_append = len(
+        current_timeline.GetItemListInTrack("video", 1) or []
+    )
+
+    print(f"Appending {len(clips_to_append)} clips...")
+    if not media_pool.AppendToTimeline(clips_to_append):
+        print("ERROR: Failed to append clips to timeline.")
+        return False
+
+    print("Coloring audible clips...")
+    video_items_after = current_timeline.GetItemListInTrack("video", 1) or []
+    new_video_items = video_items_after[item_count_before_append:]
+
+    # Create a lookup for audio items by their timeline start frame for efficiency
+    audio_items_by_start = {}
+    for i in range(1, current_timeline.GetTrackCount("audio") + 1):
+        for item in current_timeline.GetItemListInTrack("audio", i) or []:
+            audio_items_by_start.setdefault(item.GetStart(), []).append(item)
+
+    for video_item in new_video_items:
+        # GetLeftOffset() gives the frame offset from the start of the source media
+        source_start_frame = video_item.GetLeftOffset()
+        if source_start_frame in audible_offsets:
+            # Color the video clip
+            video_item.SetClipColor(highlight_color)
+
+            # Find and color corresponding audio clips using the lookup
+            timeline_start_frame = video_item.GetStart()
+            if timeline_start_frame in audio_items_by_start:
+                for audio_item in audio_items_by_start[timeline_start_frame]:
+                    audio_item.SetClipColor(highlight_color)
+    return True
+
+
 def main():
     # flow of main():
-    # gen timeline json for each clip in `clips` in auto-editor > parse json into new json > create new timeline > append clips
+    # 1. Generate assets using auto-editor (XML and V3 JSONs)
+    # 2. Sanitize XML and import it to create a new, empty timeline
+    # 3. Parse V3 JSON and append clips to the new timeline
 
     is_new_timeline = True
+    timeline_offset = 0
 
-    # TODO threshold adjustment
-
-    # formating for auto-edit is diff for 1+ audio streams
+    # Formatting for auto-editor is different for 1+ audio streams
     if len(USE_AUDIO_TRACKS) == 1:
         # i.e. `audio:stream=0`
         edit_param = f"audio:stream={USE_AUDIO_TRACKS[0]} audio:{GATE_DB}dB"
@@ -368,65 +350,121 @@ def main():
 
     for clip_idx, clip in enumerate(clips):
         file_path = clip.GetClipProperty()["File Path"]
-        if file_path:  # skip empty list items
-            file_path = Path(file_path)
-            print(
-                f"creating timeline json for {file_path.name} clip at: {file_path.parent}"
+        if not file_path:
+            continue
+
+        file_path = Path(file_path)
+        print(f"Processing {file_path.name} at: {file_path.parent}")
+
+        common_flags = [
+            "auto-editor",
+            str(file_path),
+            "--edit",
+            edit_param,
+            "--margin",
+            f"{L_TRIM_MARGIN}s,{R_TRIM_MARGIN}s",
+        ]
+
+        print("Generating Resolve FCPXML timeline...")
+        xml_timeline_path = file_path.with_suffix(".fcpxml")
+        resolve_flags = common_flags + [
+            "--export",
+            "resolve",
+            "--output",
+            str(xml_timeline_path),
+        ]
+        subprocess.run(
+            resolve_flags,
+            cwd=str(file_path.parent),
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+
+        print("Generating V3 JSON for all clips...")
+        json_path_all_clips = file_path.with_name(f"{file_path.stem}_all_clips.v3")
+        all_clips_flags = common_flags + [
+            "--export",
+            "v3",
+            "--video-speed",
+            "1",
+            "--silent-speed",
+            "1",
+            "--output",
+            str(json_path_all_clips),
+        ]
+        subprocess.run(
+            all_clips_flags,
+            cwd=str(file_path.parent),
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+
+        print("Generating V3 JSON for audible clips...")
+        json_path_audible_clips = file_path.with_name(
+            f"{file_path.stem}_audible_clips.v3"
+        )
+        audible_clips_flags = common_flags + [
+            "--export",
+            "v3",
+            "--video-speed",
+            "1",
+            "--output",
+            str(json_path_audible_clips),
+        ]
+        subprocess.run(
+            audible_clips_flags,
+            cwd=str(file_path.parent),
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+
+        print("Creating and importing empty timeline...")
+        # generated timeline file needs to be empty only needed to create timeline. by doing it this way we support the original fps the video was in.
+        if not sanitize_resolve_xml(xml_timeline_path):
+            print(f"Skipping {file_path.name} due to XML sanitization error.")
+            continue
+
+        if is_new_timeline:
+            print("Importing new timeline from XML...")
+            timeline_name = (
+                f"{project.GetName()}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            )
+            new_timeline = media_pool.ImportTimelineFromFile(
+                str(xml_timeline_path),
+                {
+                    "timelineName": timeline_name,
+                    "importSourceClips": False,
+                },
             )
 
-            # use auto-edit to create timeline json
-            subprocess.run(
-                [
-                    "auto-editor",
-                    file_path.name,
-                    "--edit",
-                    edit_param,
-                    "--margin",
-                    f"{L_TRIM_MARGIN}s,{R_TRIM_MARGIN}s",
-                    "--export",
-                    "v3",
-                    "--silent-speed",
-                    "2",
-                    "--video-speed",
-                    "1",
-                    "--output",
-                    file_path,  # auto-editor trims ext
-                ],
-                cwd=rf"{file_path.parent}",
-                creationflags=subprocess.CREATE_NO_WINDOW,
-            )
-
-            print("timeline creation successful, parsing JSON...")
-
-            # parsing json
-            total_frames = int(clips[clip_idx].GetClipProperty("End"))
-            parsed_timeline = parse_timeline_json(file_path, total_frames)
-
-            if not parsed_timeline:
-                print(f"no audio detected in {file_path.name}, skipping...")
+            if not new_timeline:
+                print("ERROR: Failed to create new timeline from XML. Skipping...")
                 continue
 
-            print("parse successful, adding clips to timeline...")
+            # Update global timeline object to the newly created one
+            project.SetCurrentTimeline(new_timeline)
+            global current_timeline
+            current_timeline = new_timeline
+            print(f"Successfully created and set timeline: {timeline_name}")
+            is_new_timeline = False
 
-            if is_new_timeline:
-                create_timeline_with_clip(parsed_timeline, clip_idx)
-                print("new timeline created")
-                # append rest of the clips in first file
-                append_clips(parsed_timeline, clip_idx, True)
-                is_new_timeline = False
-                print(f"{file_path.name} added...\n")
-                continue
+        print("Populating timeline with clips...")
 
-            # append remaining clips if multiple files
-            append_clips(parsed_timeline, clip_idx)
-            print(f"{file_path.name} added...\n")
+        populate_and_color_timeline(
+            json_path_all_clips,
+            json_path_audible_clips,
+            clip,
+            DELETE_SILENCE,
+            HIGHLIGHT_COLOR,
+            timeline_offset,
+        )
+
+        # Increment offset for the next file
+        timeline_offset += int(clip.GetClipProperty("Frames"))
+
+        print(f"{file_path.name} processed.\n")
 
 
 # --
 # -- GUI building starts here
 # --
-
-
 def open_user_interface():
     # element IDs
     win_id = "main_window"
