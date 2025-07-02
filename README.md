@@ -179,6 +179,12 @@ Auto-Editor is a tool that helps with automatic video editing, which is a depend
   ```
   If the command is recognized, you’re all set. If you see an error, try restarting your command line or refer to the [Auto-Editor documentation](https://github.com/WyattBlue/auto-editor) for help.
 
+### 3. Install [FFMPEG](https://ffmpeg.org/download.html)
+
+This project uses ffmpeg (particularly ffprobe) for handling multi-audio tracks. For now this is a requirement though I am looking into using Davinci Resolves api instead in the future ( already partially implemented good first issue :)
+
+Installation of ffmpeg is a bit more in depth so please look visit the link for instructions, though its usally a simple `choco install ffmpeg` or `brew install ffmpeg`
+
 # Installation
 
 Once you have the required dependencies installing Auto-Silence-Cut is as simple as downloading Auto-Silence-Cut.py and placing it in your scripts folder for DaVinci Resolve.
