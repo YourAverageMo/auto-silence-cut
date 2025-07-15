@@ -280,9 +280,9 @@ def populate_and_color_timeline(
         # Decide whether to append the clip
         if not delete_silence or (delete_silence and is_audible):
             if i == num_clips - 1:
-                end_frame = total_source_frames - 1
+                end_frame = total_source_frames
             else:
-                end_frame = start_frame + clip_data["dur"] - 1
+                end_frame = start_frame + clip_data["dur"]
 
             new_clip = {
                 "mediaPoolItem": source_clip,
