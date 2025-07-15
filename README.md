@@ -193,6 +193,9 @@ For Windows: `%PROGRAMDATA%\Blackmagic Design\DaVinci Resolve\Fusion\Scripts\Uti
 
 For Mac: `/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Scripts/Utility`
 
+> [!NOTE]
+> I recommend using DaVinci Resolve version 20 or later, and Auto Silence Cut release v2.1 or higher. Resolve introduced changes to their API in version 19.1.3 that broke certain functionality, which was addressed in release 2.1.
+
 # Settings Explained
 
 - **LEFT TRIM MARGIN:** The amount of padding, in seconds, to leave _before_ the edit (the left of detected audio)
