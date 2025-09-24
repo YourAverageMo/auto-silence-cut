@@ -165,13 +165,13 @@ This project requires **Python 3.7 or higher**.
 
 ### 2. Install [Auto-Editor](https://github.com/WyattBlue/auto-editor)
 
-Auto-Editor is a tool that helps with automatic video editing, which is a dependency for this project.
+Auto-Editor is a tool that helps with automatic video editing, which is a dependency for this project. NOTE: You **MUST** have version 28.0.2
 
 - **Step 1:** Open your command line (Command Prompt on Windows, Terminal on Mac).
 - **Step 2:** Enter the following command to install Auto-Editor:
   ```bash
   # I recommend using UV but you can use pip if you want.
-  pip install auto-editor
+  pip install auto-editor==28.0.2
   ```
 - **Step 3:** After the installation completes, check that Auto-Editor is installed by typing:
   ```bash
